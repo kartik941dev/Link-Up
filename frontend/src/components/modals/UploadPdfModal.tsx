@@ -56,6 +56,11 @@ export const UploadPdfModal: React.FC<UploadPdfModalProps> = ({
       return;
     }
 
+    if (selectedFile.size === 0) {
+      setError('The selected file is empty (0 bytes). Please choose a valid PDF file with content.');
+      return;
+    }
+
     try {
       setSubmitting(true);
       setError(null);
@@ -150,8 +155,12 @@ export const UploadPdfModal: React.FC<UploadPdfModalProps> = ({
                 <span style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--text-main)' }}>
                   {selectedFile.name}
                 </span>
-                <span style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>
-                  {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB • Ready to parse
+                <span style={{ fontSize: '0.78rem', color: selectedFile.size === 0 ? 'var(--accent-rose)' : 'var(--text-dim)' }}>
+                  {selectedFile.size === 0
+                    ? '0 KB (Empty file) • Cannot be parsed'
+                    : selectedFile.size < 1024 * 1024
+                    ? `${(selectedFile.size / 1024).toFixed(1)} KB • Ready to parse`
+                    : `${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB • Ready to parse`}
                 </span>
               </div>
             ) : (
