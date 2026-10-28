@@ -1,4 +1,4 @@
-import { Router, Response } from 'express';
+import { Router, Response, NextFunction } from 'express';
 import { authenticateToken, AuthRequest } from '../middleware/auth.js';
 import { TagService } from '../services/tagService.js';
 
@@ -7,7 +7,7 @@ const router = Router();
 router.use(authenticateToken);
 
 // 1. Get all tags for user
-router.get('/', async (req: AuthRequest, res: Response, next) => {
+router.get('/', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
     const tags = await TagService.getUserTags(userId);
@@ -18,7 +18,7 @@ router.get('/', async (req: AuthRequest, res: Response, next) => {
 });
 
 // 2. Create custom tag
-router.post('/', async (req: AuthRequest, res: Response, next): Promise<void> => {
+router.post('/', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user!.id;
     const { name } = req.body;
@@ -36,7 +36,7 @@ router.post('/', async (req: AuthRequest, res: Response, next): Promise<void> =>
 });
 
 // 3. Delete tag
-router.delete('/:id', async (req: AuthRequest, res: Response, next): Promise<void> => {
+router.delete('/:id', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user!.id;
     const tagId = req.params.id as string;

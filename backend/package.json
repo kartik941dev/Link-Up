@@ -24,9 +24,8 @@
     "pdf-parse": "^1.1.1",
     "mammoth": "^1.8.0",
     "cheerio": "^1.0.0",
-    "axios": "^1.7.9"
-  },
-  "devDependencies": {
+    "axios": "^1.7.9",
+    "typescript": "^5.7.2",
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
@@ -34,8 +33,9 @@
     "@types/multer": "^1.4.12",
     "@types/node": "^22.10.2",
     "@types/pdf-parse": "^1.1.4",
-    "@types/pg": "^8.11.10",
-    "tsx": "^4.19.2",
-    "typescript": "^5.7.2"
+    "@types/pg": "^8.11.10"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2"
   }
 }

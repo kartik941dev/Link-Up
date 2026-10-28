@@ -251,7 +251,7 @@ export class GraphService {
     `;
     const firstHopRes = await pool.query(firstHopQuery, [cardId, userId]);
 
-    const firstHop = firstHopRes.rows.map((row) => ({
+    const firstHop = firstHopRes.rows.map((row: any) => ({
       card: {
         id: row.id,
         title: row.title,

@@ -95,7 +95,7 @@ export class RagService {
         GROUP BY c.id;
       `;
       const res = await pool.query(query, [cardIds, userId]);
-      const cardMap = new Map<string, any>(res.rows.map((r) => [r.id, r]));
+      const cardMap = new Map<string, any>(res.rows.map((r: any) => [r.id, r]));
 
       return citations.map((cit) => {
         const dbCard = cardMap.get(cit.card_id);
@@ -151,7 +151,7 @@ export class RagService {
       };
     }
 
-    const citations: RAGCitation[] = matchedCards.map((c) => ({
+    const citations: RAGCitation[] = matchedCards.map((c: any) => ({
       card_id: c.id,
       title: c.title,
       content_type: c.content_type,

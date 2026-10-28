@@ -36,7 +36,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Logging middleware in dev
 if (config.nodeEnv === 'development') {
-  app.use((req, _res, next) => {
+  app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {
     console.log(`[${req.method}] ${req.url}`);
     next();
   });
@@ -53,7 +53,7 @@ app.use('/api/arrange', arrangeRoutes);
 app.use('/api/rag', ragRoutes);
 
 // 404 Route handler
-app.use((_req, res) => {
+app.use((_req: express.Request, res: express.Response) => {
   res.status(404).json({
     error: 'The requested API endpoint was not found.',
     code: 'NOT_FOUND',

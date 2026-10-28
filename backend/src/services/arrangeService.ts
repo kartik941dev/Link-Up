@@ -107,7 +107,7 @@ export class ArrangeService {
     }
 
     // Check if any cards have a cluster_label assigned
-    const clusteredCards = cards.filter((c) => c.cluster_label && c.cluster_label.trim() !== '');
+    const clusteredCards = cards.filter((c: any) => c.cluster_label && c.cluster_label.trim() !== '');
     if (clusteredCards.length === 0) {
       return null; // Trigger fresh ML clustering
     }
