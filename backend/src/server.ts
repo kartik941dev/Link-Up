@@ -24,7 +24,7 @@ app.use(
 
 app.use(
   cors({
-    origin: config.corsOrigin,
+    origin: config.corsOrigin === '*' ? true : config.corsOrigin,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
