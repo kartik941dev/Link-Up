@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from config import settings
-from services.model_loader import model_loader
+from services.model_loader import model_loader, ModelLoader
 from services.vector_store import vector_store
 from routers import embed, search, graph, arrange, rag
 
@@ -19,16 +19,12 @@ logger = logging.getLogger("ml_service")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Initializing LinkUp ML Microservice...")
-    # Pre-load embedding model during startup
-    try:
-        _ = model_loader.model
-        logger.info(f"Loaded '{settings.model_name}' (dim: {settings.embedding_dimension}) on {settings.model_device}")
-    except Exception as e:
-        logger.error(f"Failed to load sentence-transformer model: {e}")
-
     # Check DB connectivity
-    db_connected = vector_store.is_connected()
-    logger.info(f"VectorStore DB connected: {db_connected}")
+    try:
+        db_connected = vector_store.is_connected()
+        logger.info(f"VectorStore DB connected: {db_connected}")
+    except Exception as e:
+        logger.warn(f"VectorStore check warning: {e}")
 
     yield
     logger.info("Shutting down LinkUp ML Microservice.")
@@ -66,7 +62,7 @@ async def health_check():
             "name": settings.model_name,
             "dimension": settings.embedding_dimension,
             "device": settings.model_device,
-            "loaded": model_loader.model is not None,
+            "loaded": ModelLoader._model is not None,
         },
         "database": {
             "connected": db_status
