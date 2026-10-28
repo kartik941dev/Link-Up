@@ -1,0 +1,28 @@
+{
+  "name": "linkup-root",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LinkUp — Intelligent Knowledge Management & Visual Learning Canvas",
+  "scripts": {
+    "dev:backend": "npm.cmd --prefix backend run dev",
+    "dev:frontend": "npm.cmd --prefix frontend run dev",
+    "dev:ml": "python -m uvicorn main:app --app-dir ml-service --port 8000 --reload",
+    "build:backend": "npm.cmd --prefix backend run build",
+    "build:frontend": "npm.cmd --prefix frontend run build",
+    "db:migrate": "npm.cmd --prefix backend run db:migrate",
+    "db:health": "npm.cmd --prefix backend run db:health"
+  },
+  "keywords": [
+    "knowledge-management",
+    "canvas",
+    "rag",
+    "vector-search",
+    "ai"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@neon/config": "^1.9.5",
+    "@neon/env": "^1.6.6"
+  }
+}

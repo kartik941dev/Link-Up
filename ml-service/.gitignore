@@ -1,0 +1,29 @@
+# Python virtual environments & bytecode
+venv/
+.venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyd
+.Python
+build/
+dist/
+*.egg-info/
+
+# Environment files (CRITICAL: Never commit!)
+.env
+.env.*
+!.env.example
+*.env
+*.env.local
+
+# ML Models and local weights
+models/
+*.bin
+*.safetensors
+*.pt
+*.onnx
+
+# Logs
+*.log
