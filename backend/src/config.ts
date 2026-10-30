@@ -13,6 +13,9 @@ export interface Config {
   corsOrigin: string;
   apiUrl: string;
   mlServiceUrl: string;
+  frontendUrl: string;
+  emailUser: string;
+  emailPass: string;
 }
 
 export const config: Config = {
@@ -27,6 +30,9 @@ export const config: Config = {
   corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5173',
   apiUrl: process.env.API_URL || 'http://localhost:5000',
   mlServiceUrl: process.env.ML_SERVICE_URL || 'http://localhost:8000',
+  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
+  emailUser: process.env.EMAIL_USER || '',
+  emailPass: process.env.EMAIL_PASS || '',
 };
 
 if (!process.env.DATABASE_URL) {
