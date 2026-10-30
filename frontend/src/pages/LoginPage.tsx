@@ -90,6 +90,13 @@ export const LoginPage: React.FC = () => {
               <label className="input-label" htmlFor="password">
                 Password
               </label>
+              <Link
+                to="/forgot-password"
+                className="auth-link"
+                style={{ fontSize: '0.8rem', textDecoration: 'none' }}
+              >
+                Forgot password?
+              </Link>
             </div>
             <div style={{ position: 'relative' }}>
               <input
