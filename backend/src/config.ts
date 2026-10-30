@@ -15,7 +15,7 @@ export interface Config {
   mlServiceUrl: string;
   frontendUrl: string;
   emailUser: string;
-  emailPass: string;
+  brevoApiKey: string;
 }
 
 export const config: Config = {
@@ -31,8 +31,8 @@ export const config: Config = {
   apiUrl: process.env.API_URL || 'http://localhost:5000',
   mlServiceUrl: process.env.ML_SERVICE_URL || 'http://localhost:8000',
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
-  emailUser: process.env.EMAIL_USER || '',
-  emailPass: process.env.EMAIL_PASS || '',
+  emailUser: process.env.EMAIL_USER || 'kp941149@gmail.com',
+  brevoApiKey: process.env.BREVO_API_KEY || '',
 };
 
 if (!process.env.DATABASE_URL) {
