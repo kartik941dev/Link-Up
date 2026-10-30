@@ -11,7 +11,7 @@ def run_tests():
     print("[TEST] Running Phase 3 Machine Learning Service Tests...")
     client = TestClient(app)
 
-    # 1. Test Health Endpoint
+    # 1. Test Health Endpoint (supports lazy loading)
     print("\n--- 1. Testing GET /health ---")
     res = client.get("/health")
     assert res.status_code == 200, f"Health check failed: {res.text}"
@@ -19,7 +19,7 @@ def run_tests():
     print("Health response:", data)
     assert data["status"] == "ok"
     assert data["model"]["dimension"] == 384
-    assert data["model"]["loaded"] is True
+    assert isinstance(data["model"]["loaded"], bool)
     print("[PASS] GET /health verified!")
 
     # 2. Test POST /embed (Single Text)
@@ -33,7 +33,11 @@ def run_tests():
     norm = np.linalg.norm(embedding)
     print(f"Generated single embedding: length={len(embedding)}, L2 norm={norm:.4f}")
     assert np.isclose(norm, 1.0, atol=1e-3), "Embedding should be normalized to unit length"
-    print("[PASS] POST /embed (Single Text) verified!")
+
+    # Verify model is now loaded in health check
+    res_after = client.get("/health")
+    assert res_after.json()["model"]["loaded"] is True, "Model should be loaded after embedding request"
+    print("[PASS] POST /embed (Single Text) & post-load health verified!")
 
     # 3. Test POST /embed (Batch)
     print("\n--- 3. Testing POST /embed (Batch) ---")
