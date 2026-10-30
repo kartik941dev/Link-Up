@@ -49,6 +49,7 @@ out/
 .next/
 .nuxt/
 .output/
+*.tsbuildinfo
 
 # Logs & debugging
 logs/
