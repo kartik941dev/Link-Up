@@ -14,9 +14,9 @@ router.use(authenticateToken);
 router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user!.id;
-    const minSimilarity = req.query.minSimilarity ? parseFloat(req.query.minSimilarity as string) : 0.50;
+    const minSimilarity = req.query.minSimilarity ? parseFloat(req.query.minSimilarity as string) : 0.45;
 
-    const graph = await GraphService.getUserGraph(userId, isNaN(minSimilarity) ? 0.50 : minSimilarity);
+    const graph = await GraphService.getUserGraph(userId, isNaN(minSimilarity) ? 0.45 : minSimilarity);
     res.status(200).json({
       success: true,
       data: graph,
@@ -38,9 +38,9 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
 router.post('/rebuild', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user!.id;
-    const minSimilarity = req.body.minSimilarity ? parseFloat(req.body.minSimilarity) : 0.60;
+    const minSimilarity = req.body.minSimilarity ? parseFloat(req.body.minSimilarity) : 0.45;
 
-    const result = await GraphService.rebuildUserGraph(userId, isNaN(minSimilarity) ? 0.60 : minSimilarity);
+    const result = await GraphService.rebuildUserGraph(userId, isNaN(minSimilarity) ? 0.45 : minSimilarity);
     res.status(200).json({
       success: true,
       message: 'Knowledge graph connections recalculated successfully',
