@@ -12,6 +12,7 @@ import {
   File,
   FileSpreadsheet,
   FolderArchive,
+  History,
 } from 'lucide-react';
 
 interface TagFilterBarProps {
@@ -28,6 +29,7 @@ interface TagFilterBarProps {
   onOpenUploadDocx: () => void;
   onOpenUploadZip: () => void;
   onOpenIngestUrl: () => void;
+  onOpenHistory?: () => void;
 }
 
 export const TagFilterBar: React.FC<TagFilterBarProps> = ({
@@ -44,6 +46,7 @@ export const TagFilterBar: React.FC<TagFilterBarProps> = ({
   onOpenUploadDocx,
   onOpenUploadZip,
   onOpenIngestUrl,
+  onOpenHistory,
 }) => {
   const contentTypes: { type: ContentType | 'all'; label: string; icon: React.ReactNode }[] = [
     { type: 'all', label: 'All Cards', icon: <Layers size={14} /> },
@@ -150,6 +153,24 @@ export const TagFilterBar: React.FC<TagFilterBarProps> = ({
             <Globe size={15} style={{ color: 'var(--accent-emerald)' }} />
             <span>Add Link</span>
           </button>
+
+          {onOpenHistory && (
+            <button
+              onClick={onOpenHistory}
+              className="btn btn-secondary"
+              style={{
+                padding: '0.6rem 0.95rem',
+                fontSize: '0.825rem',
+                borderColor: 'rgba(99, 102, 241, 0.4)',
+                background: 'rgba(99, 102, 241, 0.1)',
+                color: '#ffffff',
+              }}
+              title="View uploaded files history & ZIP packages"
+            >
+              <History size={15} style={{ color: 'var(--accent-primary)' }} />
+              <span>Uploads Side Panel</span>
+            </button>
+          )}
         </div>
       </div>
 

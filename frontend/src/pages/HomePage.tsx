@@ -12,6 +12,7 @@ import { UploadZipModal } from '../components/modals/UploadZipModal.js';
 import { IngestUrlModal } from '../components/modals/IngestUrlModal.js';
 import { CardDetailModal } from '../components/modals/CardDetailModal.js';
 import { EditCardModal } from '../components/modals/EditCardModal.js';
+import { UploadHistoryDrawer } from '../components/cards/UploadHistoryDrawer.js';
 import { useSearch } from '../hooks/useSearch.js';
 import { HybridSearchBar } from '../components/search/HybridSearchBar.js';
 import { SearchResultsGrid } from '../components/search/SearchResultsGrid.js';
@@ -21,6 +22,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Cpu,
+  FolderArchive,
 } from 'lucide-react';
 
 export const HomePage: React.FC = () => {
@@ -63,6 +65,7 @@ export const HomePage: React.FC = () => {
   const [isDocxModalOpen, setIsDocxModalOpen] = useState(false);
   const [isZipModalOpen, setIsZipModalOpen] = useState(false);
   const [isUrlModalOpen, setIsUrlModalOpen] = useState(false);
+  const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState(false);
   const [selectedCardForDetail, setSelectedCardForDetail] = useState<Card | null>(null);
   const [selectedCardForEdit, setSelectedCardForEdit] = useState<Card | null>(null);
 
@@ -234,6 +237,43 @@ export const HomePage: React.FC = () => {
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '0.15rem' }}>Active Tags</div>
               </div>
             </div>
+
+            {/* Upload Activity Side Panel Trigger */}
+            <button
+              onClick={() => setIsHistoryDrawerOpen(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                background: 'rgba(99, 102, 241, 0.08)',
+                padding: '0.75rem 1.25rem',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid rgba(99, 102, 241, 0.3)',
+                cursor: 'pointer',
+                textAlign: 'left',
+                transition: 'all var(--transition-fast)',
+              }}
+              title="Click to view file upload history & ZIP packages"
+            >
+              <div
+                style={{
+                  padding: '0.45rem',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'rgba(99, 102, 241, 0.2)',
+                  color: 'var(--accent-primary)',
+                }}
+              >
+                <FolderArchive size={18} />
+              </div>
+              <div>
+                <div style={{ fontSize: '1.3rem', fontWeight: 800, lineHeight: 1, color: '#ffffff' }}>
+                  {counts.all}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--accent-primary)', marginTop: '0.15rem', fontWeight: 600 }}>
+                  Uploads Side Panel ↗
+                </div>
+              </div>
+            </button>
           </div>
         </div>
 
@@ -294,6 +334,7 @@ export const HomePage: React.FC = () => {
               onOpenUploadDocx={() => setIsDocxModalOpen(true)}
               onOpenUploadZip={() => setIsZipModalOpen(true)}
               onOpenIngestUrl={() => setIsUrlModalOpen(true)}
+              onOpenHistory={() => setIsHistoryDrawerOpen(true)}
             />
 
             {/* Main Card Canvas */}
@@ -365,6 +406,11 @@ export const HomePage: React.FC = () => {
         isOpen={!!selectedCardForEdit}
         onClose={() => setSelectedCardForEdit(null)}
         onSubmit={handleUpdateCard}
+      />
+
+      <UploadHistoryDrawer
+        isOpen={isHistoryDrawerOpen}
+        onClose={() => setIsHistoryDrawerOpen(false)}
       />
     </div>
   );
