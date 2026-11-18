@@ -61,7 +61,7 @@ class SmartClusterer:
                     LEFT JOIN tags t ON t.id = ct.tag_id
                     WHERE c.user_id = %s
                     GROUP BY c.id
-                    ORDER BY c.created_at DESC;
+                    ORDER BY c.id ASC;
                     """,
                     (user_id,)
                 )
@@ -173,25 +173,54 @@ class SmartClusterer:
                 if card_ids:
                     outlier_ids.extend(card_ids)
 
-            # Assign cluster names & prepare results
+            # Assign cluster names deterministically & prepare results
             final_clusters = []
             db_cluster_assignments: Dict[str, str] = {}
             cluster_counter = 1
 
-            for c_idx, members in clusters_dict.items():
-                if not members:
-                    continue
+            # Sort clusters deterministically by sorted member IDs so Louvain output order is stable
+            ordered_members_list = sorted(
+                [sorted(m) for m in clusters_dict.values() if m],
+                key=lambda lst: (-len(lst), lst[0])
+            )
+
+            # Count existing labels across all cards to check if a cluster's membership is completely unchanged
+            existing_label_members: Dict[str, set[str]] = {}
+            for c in cards:
+                lbl = (c.get("cluster_label") or "").strip()
+                if lbl and lbl not in ("Unclustered", "Uncategorized Notes"):
+                    existing_label_members.setdefault(lbl, set()).add(str(c["id"]))
+
+            for members in ordered_members_list:
                 member_cards = [card_map[cid] for cid in members if cid in card_map]
+                member_id_set = {str(c["id"]) for c in member_cards}
                 titles = [c["title"] for c in member_cards]
                 snippets = [c["snippet"] for c in member_cards]
                 common_tags = self._extract_common_tags(member_cards)
 
-                # Generate AI topic title
-                cluster_title = llm_client.generate_cluster_title(
-                    card_titles=titles,
-                    snippets=snippets,
-                    common_tags=common_tags
-                )
+                # Deterministic stability: if every card in this cluster already shares an exact
+                # existing cluster_label whose membership is unchanged, keep that name!
+                existing_labels = {
+                    (c.get("cluster_label") or "").strip()
+                    for c in member_cards
+                    if (c.get("cluster_label") or "").strip() not in ("", "Unclustered", "Uncategorized Notes")
+                }
+                if len(existing_labels) == 1:
+                    candidate_label = next(iter(existing_labels))
+                    if existing_label_members.get(candidate_label) == member_id_set:
+                        cluster_title = candidate_label
+                    else:
+                        cluster_title = llm_client.generate_cluster_title(
+                            card_titles=sorted(titles),
+                            snippets=snippets,
+                            common_tags=common_tags
+                        )
+                else:
+                    cluster_title = llm_client.generate_cluster_title(
+                        card_titles=sorted(titles),
+                        snippets=snippets,
+                        common_tags=common_tags
+                    )
 
                 for cid in members:
                     db_cluster_assignments[cid] = cluster_title
@@ -206,10 +235,10 @@ class SmartClusterer:
                 })
                 cluster_counter += 1
 
-            # Handle outliers / uncategorized notes
+            # Handle outliers / unclustered cards (applies equally to PDFs, DOCX, notes, and web links)
             if outlier_ids:
-                uncat_cards = [card_map[cid] for cid in outlier_ids if cid in card_map]
-                uncat_title = "Uncategorized Notes"
+                uncat_cards = [card_map[cid] for cid in sorted(outlier_ids) if cid in card_map]
+                uncat_title = "Unclustered"
                 for cid in outlier_ids:
                     db_cluster_assignments[cid] = uncat_title
 
@@ -278,12 +307,15 @@ class SmartClusterer:
         return result
 
     def _extract_common_tags(self, cards: List[Dict[str, Any]]) -> List[str]:
+        ignored = {"pdf", "docx", "doc", "note", "link", "web link", "documentation", "research", "article"}
         tag_counter = Counter()
         for c in cards:
             tags = c.get("tags") or []
             for t in tags:
                 if isinstance(t, dict) and t.get("name"):
-                    tag_counter[t["name"]] += 1
+                    name = str(t["name"]).strip().lower()
+                    if name and name not in ignored:
+                        tag_counter[name] += 1
         return [tag for tag, _ in tag_counter.most_common(5)]
 
     def _format_card_payload(self, card_dict: Dict[str, Any], cluster_label: str) -> Dict[str, Any]:
@@ -308,11 +340,11 @@ class SmartClusterer:
             update_sql = """
                 UPDATE cards AS c
                 SET cluster_label = v.cluster_label, updated_at = CURRENT_TIMESTAMP
-                FROM (VALUES %s) AS v(id, cluster_label)
-                WHERE c.id = v.id::uuid AND c.user_id = %s;
+                FROM (VALUES %s) AS v(id, cluster_label, user_id)
+                WHERE c.id = v.id::uuid AND c.user_id = v.user_id::uuid;
             """
-            rows = [(cid, label) for cid, label in assignments.items()]
-            execute_values(cur, update_sql, rows, template="(%s, %s)")
+            rows = [(cid, label, user_id) for cid, label in assignments.items()]
+            execute_values(cur, update_sql, rows, template="(%s, %s, %s)")
             conn.commit()
 
 smart_clusterer = SmartClusterer()
