@@ -1,5 +1,6 @@
 import React from 'react';
 import { Tag, ContentType } from '../../types/card.js';
+import { CardTypeCounts } from '../../hooks/useCards.js';
 import {
   Search,
   Plus,
@@ -10,10 +11,12 @@ import {
   Layers,
   File,
   FileSpreadsheet,
+  FolderArchive,
 } from 'lucide-react';
 
 interface TagFilterBarProps {
   tags: Tag[];
+  counts?: CardTypeCounts;
   selectedTag?: string;
   onSelectTag: (tag?: string) => void;
   selectedType?: ContentType | 'all';
@@ -23,11 +26,13 @@ interface TagFilterBarProps {
   onOpenCreateNote: () => void;
   onOpenUploadPdf: () => void;
   onOpenUploadDocx: () => void;
+  onOpenUploadZip: () => void;
   onOpenIngestUrl: () => void;
 }
 
 export const TagFilterBar: React.FC<TagFilterBarProps> = ({
   tags,
+  counts,
   selectedTag,
   onSelectTag,
   selectedType = 'all',
@@ -37,6 +42,7 @@ export const TagFilterBar: React.FC<TagFilterBarProps> = ({
   onOpenCreateNote,
   onOpenUploadPdf,
   onOpenUploadDocx,
+  onOpenUploadZip,
   onOpenIngestUrl,
 }) => {
   const contentTypes: { type: ContentType | 'all'; label: string; icon: React.ReactNode }[] = [
@@ -128,6 +134,15 @@ export const TagFilterBar: React.FC<TagFilterBarProps> = ({
           </button>
 
           <button
+            onClick={onOpenUploadZip}
+            className="btn btn-secondary"
+            style={{ padding: '0.6rem 0.95rem', fontSize: '0.825rem' }}
+          >
+            <FolderArchive size={15} style={{ color: 'var(--accent-amber)' }} />
+            <span>Upload ZIP</span>
+          </button>
+
+          <button
             onClick={onOpenIngestUrl}
             className="btn btn-secondary"
             style={{ padding: '0.6rem 0.95rem', fontSize: '0.825rem' }}
@@ -176,6 +191,18 @@ export const TagFilterBar: React.FC<TagFilterBarProps> = ({
               >
                 {item.icon}
                 <span>{item.label}</span>
+                {counts && (
+                  <span
+                    style={{
+                      fontSize: '0.68rem',
+                      background: isActive ? 'rgba(255, 255, 255, 0.18)' : 'rgba(255, 255, 255, 0.08)',
+                      padding: '0.05rem 0.4rem',
+                      borderRadius: 'var(--radius-full)',
+                    }}
+                  >
+                    {counts[item.type] ?? 0}
+                  </span>
+                )}
               </button>
             );
           })}
