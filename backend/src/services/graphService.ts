@@ -39,7 +39,7 @@ export class GraphService {
    * Rebuilds the knowledge graph for a user by calculating similarity
    * and updating topological centrality (PageRank).
    */
-  static async rebuildUserGraph(userId: string, minSimilarity: number = 0.60): Promise<{
+  static async rebuildUserGraph(userId: string, minSimilarity: number = 0.45): Promise<{
     nodeCount: number;
     edgeCount: number;
     source: 'ml_service' | 'database_fallback';
@@ -101,7 +101,7 @@ export class GraphService {
         WHERE c1.user_id = $1 
           AND c1.embedding IS NOT NULL 
           AND c2.embedding IS NOT NULL
-          AND (1 - (c1.embedding <=> c2.embedding)) >= $2;
+          AND (1 - (c1.embedding <=> c2.embedding)) >= LEAST($2::float, 0.25);
       `;
       const edgeInsertRes = await client.query(insertEdgesQuery, [userId, minSimilarity]);
       const edgeCount = edgeInsertRes.rowCount || 0;
@@ -143,7 +143,7 @@ export class GraphService {
   /**
    * Retrieves nodes and edges for the user knowledge graph.
    */
-  static async getUserGraph(userId: string, minSimilarity: number = 0.50): Promise<GraphData> {
+  static async getUserGraph(userId: string, minSimilarity: number = 0.45): Promise<GraphData> {
     // 1. Fetch nodes
     const nodesQuery = `
       SELECT 
@@ -170,7 +170,7 @@ export class GraphService {
     const nodesRes = await pool.query(nodesQuery, [userId]);
     const nodes: GraphNode[] = nodesRes.rows;
 
-    // 2. Fetch edges filtered by threshold
+    // 2. Fetch edges filtered by threshold (plus top-k nearest neighbors when threshold <= 0.50)
     const linksQuery = `
       SELECT 
         ge.id,
@@ -182,7 +182,11 @@ export class GraphService {
         ge.reason,
         ge.created_at
       FROM graph_edges ge
-      WHERE ge.user_id = $1 AND ge.similarity_score >= $2
+      WHERE ge.user_id = $1
+        AND (
+          ge.similarity_score >= $2
+          OR (ge.edge_type = 'nearest_neighbor' AND $2 <= 0.50 AND ge.similarity_score >= GREATEST(0.32, $2 - 0.12))
+        )
       ORDER BY ge.similarity_score DESC;
     `;
     const linksRes = await pool.query(linksQuery, [userId, minSimilarity]);
