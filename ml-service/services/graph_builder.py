@@ -15,13 +15,17 @@ class GraphBuilder:
     def build_user_graph(
         self,
         user_id: str,
-        min_similarity: float = 0.60
+        min_similarity: float = 0.45,
+        knn_k: int = 2,
+        knn_floor: float = 0.32,
     ) -> Dict[str, Any]:
         """
         Builds the knowledge graph for a user:
         1. Fetches all cards with embeddings.
         2. Computes pairwise cosine similarity.
-        3. Identifies edges exceeding min_similarity.
+        3. Connects pairs exceeding min_similarity (and stores candidate edges down to 0.25 for slider exploration),
+           plus each node's top k nearest neighbors above knn_floor so related topics always form rich links
+           while unrelated domains remain disconnected.
         4. Calculates PageRank centrality scores using NetworkX.
         5. Persists edges to graph_edges and updates cards.centrality.
         """
@@ -73,7 +77,21 @@ class GraphBuilder:
             # Pairwise cosine similarity matrix: (N, N)
             sim_matrix = np.dot(norm_matrix, norm_matrix.T)
 
-            # Extract edges
+            # Extract edges: threshold edges (down to storage_floor so slider works dynamically)
+            # + top-k nearest neighbors per node (above knn_floor so unrelated domains stay unlinked)
+            storage_floor = min(min_similarity, 0.25)
+            knn_pairs: set[tuple[int, int]] = set()
+            for i in range(num_cards):
+                row_scores = [
+                    (float(sim_matrix[i, j]), j)
+                    for j in range(num_cards)
+                    if j != i and float(sim_matrix[i, j]) >= knn_floor
+                ]
+                row_scores.sort(key=lambda x: x[0], reverse=True)
+                for _, j in row_scores[:knn_k]:
+                    pair = (min(i, j), max(i, j))
+                    knn_pairs.add(pair)
+
             edges = []
             nx_graph = nx.Graph()
             for cid in card_ids:
@@ -82,20 +100,27 @@ class GraphBuilder:
             for i in range(num_cards):
                 for j in range(i + 1, num_cards):
                     score = float(sim_matrix[i, j])
-                    if score >= min_similarity:
+                    is_knn = (i, j) in knn_pairs
+                    if score >= storage_floor or is_knn:
                         src_id = card_ids[i]
                         tgt_id = card_ids[j]
 
                         # Classify edge type
-                        if score >= 0.85:
+                        if score >= 0.80:
                             edge_type = "direct_reference"
-                        elif score >= 0.72:
+                        elif score >= 0.60:
                             edge_type = "topic_cluster"
+                        elif is_knn and score < min_similarity:
+                            edge_type = "nearest_neighbor"
                         else:
                             edge_type = "semantic_similarity"
 
                         pct = int(round(score * 100))
-                        reason = f"Semantic similarity ({pct}%)"
+                        reason = (
+                            f"Nearest neighbor ({pct}%)"
+                            if edge_type == "nearest_neighbor"
+                            else f"Semantic similarity ({pct}%)"
+                        )
 
                         edges.append({
                             "source_card_id": src_id,
@@ -106,7 +131,8 @@ class GraphBuilder:
                             "reason": reason
                         })
 
-                        nx_graph.add_edge(src_id, tgt_id, weight=score)
+                        if score >= min_similarity or is_knn:
+                            nx_graph.add_edge(src_id, tgt_id, weight=score)
 
             # Calculate PageRank Centrality
             centralities: Dict[str, float] = {}
@@ -166,11 +192,11 @@ class GraphBuilder:
                     update_sql = """
                         UPDATE cards AS c
                         SET centrality = v.centrality, updated_at = CURRENT_TIMESTAMP
-                        FROM (VALUES %s) AS v(id, centrality)
-                        WHERE c.id = v.id::uuid AND c.user_id = %s;
+                        FROM (VALUES %s) AS v(id, centrality, user_id)
+                        WHERE c.id = v.id::uuid AND c.user_id = v.user_id::uuid;
                     """
-                    centrality_rows = [(cid, score) for cid, score in centralities.items()]
-                    execute_values(cur, update_sql, centrality_rows, template="(%s, %s)")
+                    centrality_rows = [(cid, score, user_id) for cid, score in centralities.items()]
+                    execute_values(cur, update_sql, centrality_rows, template="(%s, %s, %s)")
 
                 conn.commit()
 
