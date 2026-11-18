@@ -10,7 +10,7 @@ router = APIRouter(prefix="/graph", tags=["Knowledge Graph"])
 
 class GraphBuildRequest(BaseModel):
     user_id: str = Field(..., description="UUID of the user")
-    min_similarity: Optional[float] = Field(default=0.60, ge=0.1, le=1.0, description="Minimum cosine similarity threshold")
+    min_similarity: Optional[float] = Field(default=0.45, ge=0.1, le=1.0, description="Minimum cosine similarity threshold")
 
 class GraphBuildResponse(BaseModel):
     status: str
@@ -29,7 +29,7 @@ async def build_knowledge_graph(payload: GraphBuildRequest):
     try:
         result = graph_builder.build_user_graph(
             user_id=payload.user_id,
-            min_similarity=payload.min_similarity or 0.60
+            min_similarity=payload.min_similarity if payload.min_similarity is not None else 0.45
         )
         return result
     except Exception as e:
