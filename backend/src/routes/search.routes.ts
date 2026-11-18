@@ -90,8 +90,15 @@ router.get('/', async (req: AuthRequest, res: Response, next): Promise<void> => 
             OR c.extracted_text ILIKE '%' || $2 || '%'
           )
         GROUP BY c.id
-        ORDER BY rank_score DESC, c.created_at DESC
-        LIMIT $${paramIndex - 1};
+        ORDER BY
+          (CASE WHEN c.title ILIKE '%' || $2 || '%' THEN 2.0 ELSE 0.0 END) +
+          (CASE WHEN c.extracted_text ILIKE '%' || $2 || '%' THEN 1.0 ELSE 0.0 END) +
+          ts_rank_cd(
+            to_tsvector('english', coalesce(c.title, '') || ' ' || coalesce(c.extracted_text, '')),
+            plainto_tsquery('english', $2)
+          ) DESC,
+          c.created_at DESC
+        LIMIT $${paramIndex};
       `;
 
       const result = await pool.query(ftsQuery, params);
@@ -164,7 +171,7 @@ router.get('/', async (req: AuthRequest, res: Response, next): Promise<void> => 
           AND c.embedding IS NOT NULL
         GROUP BY c.id
         ORDER BY (c.embedding <=> $2::vector) ASC
-        LIMIT $${paramIndex - 1};
+        LIMIT $${paramIndex};
       `;
 
       const result = await pool.query(semanticQuery, params);
@@ -257,7 +264,7 @@ router.get('/', async (req: AuthRequest, res: Response, next): Promise<void> => 
       WHERE c.user_id = $1
       GROUP BY c.id
       ORDER BY ${vectorSort}
-      LIMIT $${paramIndex - 1};
+      LIMIT $${paramIndex};
     `;
 
     const result = await pool.query(hybridQuery, params);
