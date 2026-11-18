@@ -36,8 +36,8 @@ export const SmartArrangePage: React.FC = () => {
     handleCardUpdated,
   } = useSmartArrange();
 
-  // View state: 'swimlanes' (horizontal scroll) or 'grid' (wrap)
-  const [viewMode, setViewMode] = useState<'swimlanes' | 'grid'>('swimlanes');
+  // View state: default to 'grid' (wrap) so no card title is ever clipped; 'swimlanes' includes scroll hint
+  const [viewMode, setViewMode] = useState<'swimlanes' | 'grid'>('grid');
   const [collapsedClusters, setCollapsedClusters] = useState<Record<string, boolean>>({});
 
   // Modals state
@@ -544,12 +544,14 @@ export const SmartArrangePage: React.FC = () => {
                             {cluster.card_count} {cluster.card_count === 1 ? 'card' : 'cards'}
                           </span>
 
-                          <span
-                            className="badge badge-indigo"
-                            style={{ fontSize: '0.68rem', padding: '0.15rem 0.5rem' }}
-                          >
-                            <Sparkles size={10} style={{ marginRight: '0.25rem' }} /> AI Theme
-                          </span>
+                          {cluster.name !== 'Unclustered' && (
+                            <span
+                              className="badge badge-indigo"
+                              style={{ fontSize: '0.68rem', padding: '0.15rem 0.5rem' }}
+                            >
+                              <Sparkles size={10} style={{ marginRight: '0.25rem' }} /> AI Theme
+                            </span>
+                          )}
                         </div>
 
                         {/* Common Tags Subheader */}
@@ -602,34 +604,50 @@ export const SmartArrangePage: React.FC = () => {
                   {!isCollapsed && (
                     <div style={{ marginTop: '1.5rem' }}>
                       {viewMode === 'swimlanes' ? (
-                        /* Horizontal Swimlane Scroll */
-                        <div
-                          style={{
-                            display: 'flex',
-                            gap: '1.25rem',
-                            overflowX: 'auto',
-                            paddingBottom: '0.75rem',
-                            scrollSnapType: 'x mandatory',
-                          }}
-                        >
-                          {cluster.cards.map((card) => (
+                        /* Horizontal Swimlane Scroll with Scroll Hint */
+                        <div style={{ position: 'relative' }}>
+                          {cluster.cards.length > 3 && (
                             <div
-                              key={card.id}
                               style={{
-                                minWidth: '320px',
-                                maxWidth: '360px',
-                                flex: '0 0 auto',
-                                scrollSnapAlign: 'start',
+                                display: 'flex',
+                                justifyContent: 'flex-end',
+                                marginBottom: '0.5rem',
+                                fontSize: '0.74rem',
+                                color: 'var(--text-dim)',
                               }}
                             >
-                              <CardItem
-                                card={card}
-                                onViewDetail={(c) => setSelectedCardForDetail(c)}
-                                onEdit={(c) => setCardToEdit(c)}
-                                onDelete={handleDeleteCard}
-                              />
+                              <span>Scroll horizontally to view all {cluster.cards.length} cards →</span>
                             </div>
-                          ))}
+                          )}
+                          <div
+                            style={{
+                              display: 'flex',
+                              gap: '1.25rem',
+                              overflowX: 'auto',
+                              paddingBottom: '0.85rem',
+                              paddingRight: '2.5rem',
+                              scrollSnapType: 'x mandatory',
+                            }}
+                          >
+                            {cluster.cards.map((card) => (
+                              <div
+                                key={card.id}
+                                style={{
+                                  minWidth: '320px',
+                                  maxWidth: '360px',
+                                  flex: '0 0 auto',
+                                  scrollSnapAlign: 'start',
+                                }}
+                              >
+                                <CardItem
+                                  card={card}
+                                  onViewDetail={(c) => setSelectedCardForDetail(c)}
+                                  onEdit={(c) => setCardToEdit(c)}
+                                  onDelete={handleDeleteCard}
+                                />
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       ) : (
                         /* Grid Layout */
