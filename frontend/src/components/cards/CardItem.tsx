@@ -70,7 +70,21 @@ export const CardItem: React.FC<CardItemProps> = ({
     year: 'numeric',
   });
 
-  const previewImage = card.metadata?.imageUrl;
+  const rawPreviewImage = card.metadata?.imageUrl;
+  const previewImage =
+    typeof rawPreviewImage === 'string' && /^https?:\/\//i.test(rawPreviewImage)
+      ? rawPreviewImage
+      : undefined;
+
+  const rawExternalUrl = card.metadata?.url;
+  const safeExternalUrl =
+    typeof rawExternalUrl === 'string' && /^https?:\/\//i.test(rawExternalUrl)
+      ? rawExternalUrl
+      : undefined;
+
+  // Filter out file-type noise tags (file type is shown as a badge, not a tag)
+  const NOISE_TAGS = new Set(['pdf', 'docx', 'doc', 'note', 'link', 'web link', 'documentation', 'research', 'article']);
+  const contentTags = (card.tags || []).filter((t) => !NOISE_TAGS.has(t.name.trim().toLowerCase()));
 
   return (
     <div
@@ -196,8 +210,8 @@ export const CardItem: React.FC<CardItemProps> = ({
           {card.snippet || card.extracted_text || card.raw_content || 'No content preview available.'}
         </p>
 
-        {/* Tags */}
-        {card.tags && card.tags.length > 0 && (
+        {/* Content Tags (file type shown as badge above) */}
+        {contentTags.length > 0 && (
           <div
             style={{
               display: 'flex',
@@ -206,7 +220,7 @@ export const CardItem: React.FC<CardItemProps> = ({
               marginBottom: '1rem',
             }}
           >
-            {card.tags.slice(0, 4).map((tag) => (
+            {contentTags.slice(0, 4).map((tag) => (
               <span
                 key={tag.id}
                 style={{
@@ -225,7 +239,7 @@ export const CardItem: React.FC<CardItemProps> = ({
                 <span>{tag.name}</span>
               </span>
             ))}
-            {card.tags.length > 4 && (
+            {contentTags.length > 4 && (
               <span
                 style={{
                   fontSize: '0.7rem',
@@ -235,7 +249,7 @@ export const CardItem: React.FC<CardItemProps> = ({
                   color: 'var(--text-dim)',
                 }}
               >
-                +{card.tags.length - 4}
+                +{contentTags.length - 4}
               </span>
             )}
           </div>
@@ -271,11 +285,11 @@ export const CardItem: React.FC<CardItemProps> = ({
           </button>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            {card.content_type === 'link' && card.metadata?.url && (
+            {card.content_type === 'link' && safeExternalUrl && (
               <a
-                href={card.metadata.url}
+                href={safeExternalUrl}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 style={{
                   padding: '0.35rem',
                   borderRadius: 'var(--radius-sm)',

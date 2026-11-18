@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card } from '../../types/card.js';
 import { CardItem } from './CardItem.js';
-import { Layers, Plus, FileUp, Globe } from 'lucide-react';
+import { Layers, Plus, FileUp, Globe, FolderArchive } from 'lucide-react';
 
 interface CardCanvasProps {
   cards: Card[];
@@ -12,6 +12,7 @@ interface CardCanvasProps {
   onOpenCreateNote: () => void;
   onOpenUploadPdf: () => void;
   onOpenUploadDocx: () => void;
+  onOpenUploadZip?: () => void;
   onOpenIngestUrl: () => void;
 }
 
@@ -24,6 +25,7 @@ export const CardCanvas: React.FC<CardCanvasProps> = ({
   onOpenCreateNote,
   onOpenUploadPdf,
   onOpenUploadDocx,
+  onOpenUploadZip,
   onOpenIngestUrl,
 }) => {
   if (loading) {
@@ -96,6 +98,12 @@ export const CardCanvas: React.FC<CardCanvasProps> = ({
             <FileUp size={16} style={{ color: 'var(--accent-secondary)' }} />
             <span>Upload DOCX</span>
           </button>
+          {onOpenUploadZip && (
+            <button onClick={onOpenUploadZip} className="btn btn-secondary">
+              <FolderArchive size={16} style={{ color: 'var(--accent-amber)' }} />
+              <span>Upload ZIP</span>
+            </button>
+          )}
           <button onClick={onOpenIngestUrl} className="btn btn-secondary">
             <Globe size={16} style={{ color: 'var(--accent-emerald)' }} />
             <span>Add Web Link</span>
