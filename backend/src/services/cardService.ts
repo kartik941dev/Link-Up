@@ -1,6 +1,7 @@
 import { pool } from '../utils/db.js';
 import { mlClient } from './mlClient.js';
 import { GraphService } from './graphService.js';
+import { cleanCardTitle, cleanTagNames, extractFallbackKeywords } from '../utils/titleCleaner.js';
 
 export interface CreateCardInput {
   userId: string;
@@ -10,6 +11,7 @@ export interface CreateCardInput {
   extractedText?: string;
   metadata?: Record<string, any>;
   tagNames?: string[];
+  skipBackgroundGraph?: boolean;
 }
 
 export interface UpdateCardInput {
@@ -73,8 +75,67 @@ export class CardService {
     }
   }
 
+  // Check for duplicate file (by SHA-256 hash or filename) or duplicate URL
+  static async findDuplicateCard(
+    userId: string,
+    opts: { fileHash?: string; originalFilename?: string; url?: string; contentType?: string }
+  ): Promise<{ id: string; title: string } | null> {
+    if (opts.url) {
+      const normalizedUrl = opts.url.trim().replace(/\/+$/, '').toLowerCase();
+      const res = await pool.query(
+        `SELECT id, title FROM cards
+         WHERE user_id = $1 AND content_type = 'link'
+           AND LOWER(RTRIM(COALESCE(metadata->>'url', ''), '/')) = $2
+         LIMIT 1`,
+        [userId, normalizedUrl]
+      );
+      if (res.rows.length > 0) return res.rows[0];
+    }
+
+    if (opts.fileHash) {
+      const res = await pool.query(
+        `SELECT id, title FROM cards
+         WHERE user_id = $1
+           AND metadata->>'fileHash' = $2
+         LIMIT 1`,
+        [userId, opts.fileHash]
+      );
+      if (res.rows.length > 0) return res.rows[0];
+    }
+
+    if (opts.originalFilename && opts.contentType) {
+      const res = await pool.query(
+        `SELECT id, title FROM cards
+         WHERE user_id = $1 AND content_type = $2
+           AND LOWER(COALESCE(metadata->>'originalFilename', '')) = LOWER($3)
+         LIMIT 1`,
+        [userId, opts.contentType, opts.originalFilename]
+      );
+      if (res.rows.length > 0) return res.rows[0];
+    }
+
+    return null;
+  }
+
   // Create Card
   static async createCard(input: CreateCardInput) {
+    const cleanedTitle = cleanCardTitle(input.title, input.metadata?.originalFilename);
+    const bodyText = input.extractedText || input.rawContent || '';
+
+    // Clean user-supplied tags (remove file-type/generic noise) and enrich with 2-4 real content keywords
+    const userContentTags = cleanTagNames(input.tagNames || []);
+    let finalTags = [...userContentTags];
+
+    if (finalTags.length < 2) {
+      const mlKeywords = await mlClient.extractKeywords(cleanedTitle, bodyText, 4);
+      const autoKeywords = cleanTagNames(
+        mlKeywords && mlKeywords.length > 0
+          ? mlKeywords
+          : extractFallbackKeywords(cleanedTitle, bodyText, 4)
+      );
+      finalTags = cleanTagNames([...userContentTags, ...autoKeywords]).slice(0, 5);
+    }
+
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
@@ -88,33 +149,31 @@ export class CardService {
 
       const values = [
         input.userId,
-        input.title.trim(),
+        cleanedTitle,
         input.contentType,
         input.rawContent || '',
-        input.extractedText || input.rawContent || '',
+        bodyText,
         JSON.stringify(input.metadata || {}),
       ];
 
       const res = await client.query(insertQuery, values);
       const card = res.rows[0];
 
-      if (input.tagNames && input.tagNames.length > 0) {
-        await this.syncTags(client, input.userId, card.id, input.tagNames);
+      if (finalTags.length > 0) {
+        await this.syncTags(client, input.userId, card.id, finalTags);
       }
 
       await client.query('COMMIT');
 
       // Trigger automatic background embedding generation & graph connection update
       mlClient
-        .syncCardEmbedding(
-          card.id,
-          input.title,
-          input.extractedText || input.rawContent || ''
-        )
+        .syncCardEmbedding(card.id, cleanedTitle, bodyText)
         .then(() => {
-          GraphService.rebuildUserGraph(input.userId).catch((err) => {
-            console.warn(`[GRAPH] Background graph rebuild notice: ${err.message}`);
-          });
+          if (!input.skipBackgroundGraph) {
+            GraphService.rebuildUserGraph(input.userId).catch((err) => {
+              console.warn(`[GRAPH] Background graph rebuild notice: ${err.message}`);
+            });
+          }
         })
         .catch((e) => {
           console.warn(`[EMBED] Background vectorization notice: ${e.message}`);
@@ -269,7 +328,7 @@ export class CardService {
       await client.query(updateQuery, values);
 
       if (input.tagNames !== undefined) {
-        await this.syncTags(client, userId, cardId, input.tagNames);
+        await this.syncTags(client, userId, cardId, cleanTagNames(input.tagNames));
       }
 
       await client.query('COMMIT');
@@ -298,12 +357,27 @@ export class CardService {
     }
   }
 
-  // Delete Card
+  // Delete Card (cascades card_tags & graph_edges, prunes unused tags, refreshes graph)
   static async deleteCard(cardId: string, userId: string) {
     const res = await pool.query(
       'DELETE FROM cards WHERE id = $1 AND user_id = $2 RETURNING id',
       [cardId, userId]
     );
-    return res.rows.length > 0;
+    if (res.rows.length === 0) return false;
+
+    // Remove orphaned tags with 0 remaining cards so Active Tags count stays accurate
+    await pool.query(
+      `DELETE FROM tags
+       WHERE user_id = $1
+         AND id NOT IN (SELECT DISTINCT tag_id FROM card_tags)`,
+      [userId]
+    );
+
+    // Refresh graph centralities in background
+    GraphService.rebuildUserGraph(userId).catch((err) => {
+      console.warn(`[GRAPH] Post-delete graph rebuild notice: ${err.message}`);
+    });
+
+    return true;
   }
 }
