@@ -10,7 +10,7 @@ import { emailService } from '../services/emailService.js';
 
 const router = Router();
 
-const generateToken = (payload: { id: string; email: string }): string => {
+const generateToken = (payload: { id: string; email: string; username?: string; name?: string }): string => {
   const options: SignOptions = {
     expiresIn: config.jwtExpiration as unknown as SignOptions['expiresIn'],
   };
@@ -20,7 +20,7 @@ const generateToken = (payload: { id: string; email: string }): string => {
 // 1. User Registration (Signup)
 router.post('/signup', async (req, res, next): Promise<void> => {
   try {
-    const { email, password } = req.body;
+    const { email, password, username, name } = req.body;
 
     if (!email || !isValidEmail(email)) {
       res.status(400).json({
@@ -41,7 +41,20 @@ router.post('/signup', async (req, res, next): Promise<void> => {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    // Check if user already exists
+    // Determine displayName and username
+    const rawName = (name ? String(name).trim() : (username ? String(username).trim() : normalizedEmail.split('@')[0].trim()));
+    const rawUsername = (username ? String(username).trim() : (name ? String(name).trim().toLowerCase().replace(/[^a-zA-Z0-9_-]/g, '_') : normalizedEmail.split('@')[0].trim()));
+
+    const USERNAME_REGEX = /^[a-zA-Z0-9_-]{3,30}$/;
+    if (!USERNAME_REGEX.test(rawUsername)) {
+      res.status(400).json({
+        error: 'Username must be between 3 and 30 characters and contain only letters, numbers, underscores, or hyphens.',
+        code: 'INVALID_USERNAME',
+      });
+      return;
+    }
+
+    // Check if user with this email already exists
     const existingUser = await pool.query(
       'SELECT id FROM users WHERE email = $1',
       [normalizedEmail]
@@ -55,20 +68,39 @@ router.post('/signup', async (req, res, next): Promise<void> => {
       return;
     }
 
+    // Check if username is already taken
+    const existingUsername = await pool.query(
+      'SELECT id FROM users WHERE LOWER(username) = LOWER($1)',
+      [rawUsername]
+    );
+
+    if (existingUsername.rows.length > 0) {
+      res.status(409).json({
+        error: 'This username is already taken. Please choose another username.',
+        code: 'USERNAME_ALREADY_EXISTS',
+      });
+      return;
+    }
+
     // Hash password with bcrypt (salt factor 10)
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
     // Insert user
     const insertResult = await pool.query(
-      `INSERT INTO users (email, password_hash) 
-       VALUES ($1, $2) 
-       RETURNING id, email, created_at`,
-      [normalizedEmail, passwordHash]
+      `INSERT INTO users (email, password_hash, username, name) 
+       VALUES ($1, $2, $3, $4) 
+       RETURNING id, email, username, name, created_at`,
+      [normalizedEmail, passwordHash, rawUsername, rawName]
     );
 
     const newUser = insertResult.rows[0];
-    const token = generateToken({ id: newUser.id, email: newUser.email });
+    const token = generateToken({
+      id: newUser.id,
+      email: newUser.email,
+      username: newUser.username,
+      name: newUser.name,
+    });
 
     res.status(201).json({
       message: 'User registered successfully.',
@@ -76,6 +108,8 @@ router.post('/signup', async (req, res, next): Promise<void> => {
       user: {
         id: newUser.id,
         email: newUser.email,
+        username: newUser.username,
+        name: newUser.name,
         created_at: newUser.created_at,
       },
     });
@@ -84,30 +118,61 @@ router.post('/signup', async (req, res, next): Promise<void> => {
   }
 });
 
-// 2. User Login (Signin)
+// 2. User Login (Signin) - Supports Name, Username, and Email
 router.post('/signin', async (req, res, next): Promise<void> => {
   try {
-    const { email, password } = req.body;
+    const { email, username, name, identifier, password } = req.body;
 
-    if (!email || !password) {
+    const rawEmail = (email || (identifier && identifier.includes('@') ? identifier : '')).trim();
+    const rawName = (name || username || (identifier && !identifier.includes('@') ? identifier : '')).trim();
+
+    if (!rawEmail && !rawName) {
       res.status(400).json({
-        error: 'Email and password are both required.',
+        error: 'Name/Username or Email address is required.',
         code: 'MISSING_CREDENTIALS',
       });
       return;
     }
 
-    const normalizedEmail = email.trim().toLowerCase();
+    if (!password) {
+      res.status(400).json({
+        error: 'Password is required.',
+        code: 'MISSING_CREDENTIALS',
+      });
+      return;
+    }
 
-    // Fetch user
-    const userResult = await pool.query(
-      'SELECT id, email, password_hash, created_at FROM users WHERE email = $1',
-      [normalizedEmail]
-    );
+    // Fetch user by email OR username/name
+    let userResult;
+    if (rawEmail && rawName) {
+      userResult = await pool.query(
+        `SELECT id, email, username, name, password_hash, created_at 
+         FROM users 
+         WHERE LOWER(email) = LOWER($1) OR LOWER(username) = LOWER($2) OR LOWER(name) = LOWER($2)
+         LIMIT 1`,
+        [rawEmail, rawName]
+      );
+    } else if (rawEmail) {
+      userResult = await pool.query(
+        `SELECT id, email, username, name, password_hash, created_at 
+         FROM users 
+         WHERE LOWER(email) = LOWER($1)
+         LIMIT 1`,
+        [rawEmail]
+      );
+    } else {
+      userResult = await pool.query(
+        `SELECT id, email, username, name, password_hash, created_at 
+         FROM users 
+         WHERE LOWER(username) = LOWER($1) OR LOWER(name) = LOWER($1)
+         LIMIT 1`,
+        [rawName]
+      );
+    }
 
     if (userResult.rows.length === 0) {
       res.status(401).json({
-        error: 'Invalid email or password.',
+        error: 'Invalid credentials. Please verify your Name/Email and Password.',
         code: 'INVALID_CREDENTIALS',
       });
       return;
@@ -119,13 +184,18 @@ router.post('/signin', async (req, res, next): Promise<void> => {
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
       res.status(401).json({
-        error: 'Invalid email or password.',
+        error: 'Invalid credentials. Please verify your Name/Email and Password.',
         code: 'INVALID_CREDENTIALS',
       });
       return;
     }
 
-    const token = generateToken({ id: user.id, email: user.email });
+    const token = generateToken({
+      id: user.id,
+      email: user.email,
+      username: user.username,
+      name: user.name,
+    });
 
     res.status(200).json({
       message: 'Logged in successfully.',
@@ -133,6 +203,8 @@ router.post('/signin', async (req, res, next): Promise<void> => {
       user: {
         id: user.id,
         email: user.email,
+        username: user.username,
+        name: user.name,
         created_at: user.created_at,
       },
     });
@@ -146,7 +218,7 @@ router.get('/me', authenticateToken, async (req: AuthRequest, res: Response, nex
   try {
     const userId = req.user?.id;
     const userResult = await pool.query(
-      'SELECT id, email, created_at FROM users WHERE id = $1',
+      'SELECT id, email, username, name, created_at FROM users WHERE id = $1',
       [userId]
     );
 
@@ -160,6 +232,78 @@ router.get('/me', authenticateToken, async (req: AuthRequest, res: Response, nex
 
     res.status(200).json({
       user: userResult.rows[0],
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// 3b. Update User Profile (/profile)
+router.patch('/profile', authenticateToken, async (req: AuthRequest, res: Response, next): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+    const { name, username } = req.body;
+
+    if (!name && !username) {
+      res.status(400).json({
+        error: 'Please provide a name or username to update.',
+        code: 'MISSING_FIELDS',
+      });
+      return;
+    }
+
+    let cleanUsername: string | undefined;
+    if (username) {
+      cleanUsername = String(username).trim();
+      const USERNAME_REGEX = /^[a-zA-Z0-9_-]{3,30}$/;
+      if (!USERNAME_REGEX.test(cleanUsername)) {
+        res.status(400).json({
+          error: 'Username must be between 3 and 30 characters and contain only letters, numbers, underscores, or hyphens.',
+          code: 'INVALID_USERNAME',
+        });
+        return;
+      }
+
+      // Check if another user has this username
+      const existing = await pool.query(
+        'SELECT id FROM users WHERE LOWER(username) = LOWER($1) AND id != $2',
+        [cleanUsername, userId]
+      );
+      if (existing.rows.length > 0) {
+        res.status(409).json({
+          error: 'This username is already taken. Please choose another username.',
+          code: 'USERNAME_ALREADY_EXISTS',
+        });
+        return;
+      }
+    }
+
+    const cleanName = name ? String(name).trim() : undefined;
+
+    const updateResult = await pool.query(
+      `UPDATE users 
+       SET 
+         name = COALESCE($1, name),
+         username = COALESCE($2, username),
+         updated_at = NOW()
+       WHERE id = $3
+       RETURNING id, email, username, name, created_at`,
+      [cleanName || null, cleanUsername || null, userId]
+    );
+
+    if (updateResult.rows.length === 0) {
+      res.status(404).json({
+        error: 'User profile not found.',
+        code: 'USER_NOT_FOUND',
+      });
+      return;
+    }
+
+    const updatedUser = updateResult.rows[0];
+
+    res.status(200).json({
+      message: 'Profile updated successfully.',
+      user: updatedUser,
     });
   } catch (err) {
     next(err);

@@ -45,11 +45,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     verifySession();
   }, []);
 
-  const login = async (email: string, password: string): Promise<void> => {
+  const login = async (
+    credentialsOrIdentifier: string | { name?: string; email?: string; username?: string; password?: string },
+    password?: string
+  ): Promise<void> => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await api.post<AuthResponse>('/auth/signin', { email, password });
+      let payload: Record<string, any>;
+      if (typeof credentialsOrIdentifier === 'string') {
+        payload = {
+          identifier: credentialsOrIdentifier,
+          email: credentialsOrIdentifier,
+          password,
+        };
+      } else {
+        payload = {
+          ...credentialsOrIdentifier,
+          password: credentialsOrIdentifier.password || password,
+        };
+      }
+
+      const response = await api.post<AuthResponse>('/auth/signin', payload);
       const { token: receivedToken, user: receivedUser } = response.data;
 
       localStorage.setItem(TOKEN_KEY, receivedToken);
@@ -66,11 +83,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signup = async (email: string, password: string): Promise<void> => {
+  const signup = async (
+    email: string,
+    password: string,
+    username?: string,
+    name?: string
+  ): Promise<void> => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await api.post<AuthResponse>('/auth/signup', { email, password });
+      const response = await api.post<AuthResponse>('/auth/signup', {
+        email,
+        password,
+        username,
+        name,
+      });
       const { token: receivedToken, user: receivedUser } = response.data;
 
       localStorage.setItem(TOKEN_KEY, receivedToken);
@@ -84,6 +111,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error(errMsg);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const updateProfile = async (data: { name?: string; username?: string }): Promise<void> => {
+    try {
+      const response = await api.patch<{ user: User; message: string }>('/auth/profile', data);
+      const updatedUser = response.data.user;
+      localStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
+      setUser(updatedUser);
+    } catch (err: unknown) {
+      const errMsg = getErrorMessage(err);
+      setError(errMsg);
+      throw new Error(errMsg);
     }
   };
 
@@ -107,6 +147,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isLoading,
     login,
     signup,
+    updateProfile,
     logout,
     error,
     clearError,

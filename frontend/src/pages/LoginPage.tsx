@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.js';
-import { Layers, Mail, Lock, ArrowRight, AlertCircle, Loader2 } from 'lucide-react';
+import { Layers, User, Mail, Lock, ArrowRight, AlertCircle, Loader2 } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
@@ -18,14 +19,27 @@ export const LoginPage: React.FC = () => {
     e.preventDefault();
     setFormError(null);
 
-    if (!email || !password) {
-      setFormError('Please enter both email and password.');
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
+
+    if (!trimmedName && !trimmedEmail) {
+      setFormError('Please enter your Name/Username or Email address.');
+      return;
+    }
+
+    if (!password) {
+      setFormError('Please enter your password.');
       return;
     }
 
     try {
       setIsSubmitting(true);
-      await login(email, password);
+      await login({
+        name: trimmedName,
+        username: trimmedName,
+        email: trimmedEmail,
+        password,
+      });
       navigate(from, { replace: true });
     } catch (err: any) {
       setFormError(err.message || 'Login failed. Please check your credentials.');
@@ -56,6 +70,36 @@ export const LoginPage: React.FC = () => {
         )}
 
         <form onSubmit={handleSubmit}>
+          {/* Name / Username Field */}
+          <div className="input-group">
+            <label className="input-label" htmlFor="name">
+              Name or Username
+            </label>
+            <div style={{ position: 'relative' }}>
+              <input
+                id="name"
+                type="text"
+                className="input-field"
+                placeholder="e.g. kartik or Kartik Patel"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                autoComplete="name"
+                style={{ paddingLeft: '2.5rem' }}
+              />
+              <User
+                size={17}
+                style={{
+                  position: 'absolute',
+                  left: '0.85rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--text-dim)',
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Email Address Field */}
           <div className="input-group">
             <label className="input-label" htmlFor="email">
               Email Address
@@ -69,7 +113,6 @@ export const LoginPage: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete="email"
-                required
                 style={{ paddingLeft: '2.5rem' }}
               />
               <Mail
@@ -85,6 +128,7 @@ export const LoginPage: React.FC = () => {
             </div>
           </div>
 
+          {/* Password Field */}
           <div className="input-group" style={{ marginBottom: '1.75rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <label className="input-label" htmlFor="password">

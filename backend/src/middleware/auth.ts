@@ -5,6 +5,8 @@ import { config } from '../config.js';
 export interface AuthUser {
   id: string;
   email: string;
+  username?: string;
+  name?: string;
 }
 
 export interface AuthRequest extends Request {
@@ -34,6 +36,8 @@ export const authenticateToken = (
     req.user = {
       id: decoded.id,
       email: decoded.email,
+      username: decoded.username,
+      name: decoded.name,
     };
     next();
   } catch (err: any) {

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.js';
-import { Layers, Mail, Lock, ArrowRight, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
+import { Layers, Mail, User, Lock, ArrowRight, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
 
 export const SignupPage: React.FC = () => {
   const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
@@ -17,8 +18,14 @@ export const SignupPage: React.FC = () => {
     e.preventDefault();
     setFormError(null);
 
-    if (!email || !password) {
+    const cleanUsername = username.trim();
+    if (!email || !password || !cleanUsername) {
       setFormError('All fields are required.');
+      return;
+    }
+
+    if (cleanUsername.length < 3 || cleanUsername.length > 30 || !/^[a-zA-Z0-9_-]+$/.test(cleanUsername)) {
+      setFormError('Username must be 3-30 characters with letters, numbers, underscores, or hyphens only.');
       return;
     }
 
@@ -34,7 +41,7 @@ export const SignupPage: React.FC = () => {
 
     try {
       setIsSubmitting(true);
-      await signup(email, password);
+      await signup(email, password, cleanUsername);
       navigate('/', { replace: true });
     } catch (err: any) {
       setFormError(err.message || 'Signup failed. Please try again.');
@@ -65,6 +72,35 @@ export const SignupPage: React.FC = () => {
         )}
 
         <form onSubmit={handleSubmit}>
+          <div className="input-group">
+            <label className="input-label" htmlFor="username">
+              Name or Username
+            </label>
+            <div style={{ position: 'relative' }}>
+              <input
+                id="username"
+                type="text"
+                className="input-field"
+                placeholder="e.g. kartik or Kartik Patel"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                autoComplete="name"
+                required
+                style={{ paddingLeft: '2.5rem' }}
+              />
+              <User
+                size={17}
+                style={{
+                  position: 'absolute',
+                  left: '0.85rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--text-dim)',
+                }}
+              />
+            </div>
+          </div>
+
           <div className="input-group">
             <label className="input-label" htmlFor="email">
               Email Address
