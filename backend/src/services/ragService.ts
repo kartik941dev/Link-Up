@@ -115,25 +115,67 @@ export class RagService {
   }
 
   /**
-   * Database fallback using full-text search when ML service is offline
+   * Database fallback using full-text search & keyword matching when ML service is offline
    */
   private static async fallbackQuery(userId: string, query: string): Promise<RAGQueryResponse> {
+    // Extract meaningful keywords for resilient OR matching alongside PostgreSQL FTS
+    const stopWords = new Set([
+      'what', 'when', 'where', 'which', 'who', 'whom', 'whose', 'why', 'how',
+      'are', 'was', 'were', 'been', 'being', 'have', 'has', 'had', 'does', 'did',
+      'the', 'and', 'for', 'with', 'from', 'about', 'into', 'that', 'this', 'these',
+      'those', 'your', 'our', 'their', 'can', 'could', 'would', 'should', 'tell', 'explain', 'summarize'
+    ]);
+    const tokens = query
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .split(/\s+/)
+      .filter((t) => t.length >= 3 && !stopWords.has(t));
+
+    const tsOrQuery = tokens.length > 0 ? tokens.join(' | ') : query;
+    const ilikePatterns = tokens.slice(0, 6).map((t) => `%${t}%`);
+
     const ftsQuery = `
       SELECT 
         c.id, c.title, c.content_type, c.created_at,
-        SUBSTRING(COALESCE(c.extracted_text, c.raw_content, ''), 1, 300) AS snippet,
+        SUBSTRING(COALESCE(c.extracted_text, c.raw_content, ''), 1, 350) AS snippet,
         ts_rank_cd(
           to_tsvector('english', coalesce(c.title, '') || ' ' || coalesce(c.extracted_text, '')),
-          plainto_tsquery('english', $2)
+          to_tsquery('english', $2)
         ) AS rank
       FROM cards c
       WHERE c.user_id = $1 
-        AND (c.title ILIKE $3 OR c.extracted_text ILIKE $3)
+        AND (
+          to_tsvector('english', coalesce(c.title, '') || ' ' || coalesce(c.extracted_text, '')) @@ to_tsquery('english', $2)
+          OR c.title ILIKE ANY($3::text[])
+          OR c.extracted_text ILIKE ANY($3::text[])
+        )
       ORDER BY rank DESC, c.created_at DESC
-      LIMIT 4;
+      LIMIT 5;
     `;
-    const res = await pool.query(ftsQuery, [userId, query, `%${query}%`]);
-    const matchedCards = res.rows;
+
+    let matchedCards: any[] = [];
+    try {
+      const res = await pool.query(ftsQuery, [
+        userId,
+        tsOrQuery,
+        ilikePatterns.length > 0 ? ilikePatterns : [`%${query}%`],
+      ]);
+      matchedCards = res.rows;
+    } catch {
+      // Fallback to plainto_tsquery if custom tsquery syntax fails
+      const safeRes = await pool.query(
+        `SELECT 
+          c.id, c.title, c.content_type, c.created_at,
+          SUBSTRING(COALESCE(c.extracted_text, c.raw_content, ''), 1, 350) AS snippet
+        FROM cards c
+        WHERE c.user_id = $1
+          AND (c.title ILIKE ANY($2::text[]) OR c.extracted_text ILIKE ANY($2::text[]))
+        ORDER BY c.created_at DESC
+        LIMIT 5;`,
+        [userId, ilikePatterns.length > 0 ? ilikePatterns : [`%${query}%`]]
+      );
+      matchedCards = safeRes.rows;
+    }
 
     if (matchedCards.length === 0) {
       return {
