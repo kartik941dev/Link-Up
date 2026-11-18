@@ -2,6 +2,7 @@ from typing import List, Optional, Union
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 from services.model_loader import model_loader
+from services.keyword_extractor import extract_keywords
 from config import settings
 
 router = APIRouter(prefix="", tags=["Embeddings"])
@@ -17,6 +18,14 @@ class SingleEmbedResponse(BaseModel):
 class BatchEmbedResponse(BaseModel):
     embeddings: List[List[float]]
     dimension: int
+
+class KeywordRequest(BaseModel):
+    title: str = Field(default="", description="Document title")
+    text: str = Field(default="", description="Extracted document text")
+    top_k: int = Field(default=4, ge=2, le=6, description="Number of content keywords to extract")
+
+class KeywordResponse(BaseModel):
+    keywords: List[str]
 
 @router.post(
     "/embed",
@@ -47,4 +56,20 @@ async def generate_embeddings(req: EmbedRequest):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to generate embeddings: {str(e)}"
+        )
+
+
+@router.post(
+    "/keywords",
+    summary="Extract 2-4 lowercase semantic content keywords for a card",
+    response_model=KeywordResponse
+)
+async def generate_keywords(req: KeywordRequest):
+    try:
+        keywords = extract_keywords(req.title, req.text, top_k=req.top_k)
+        return KeywordResponse(keywords=keywords)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to extract keywords: {str(e)}"
         )
