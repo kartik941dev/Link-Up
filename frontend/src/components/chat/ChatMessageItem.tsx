@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { ChatMessage, RAGCitation } from '../../types/chat.js';
 import { CitationBadge } from './CitationBadge.js';
 import {
@@ -16,72 +18,48 @@ interface ChatMessageItemProps {
   onOpenCard: (cardId: string) => void;
 }
 
+const CITATION_HREF_PREFIX = '#linkup-citation-';
+
 export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({ message, onOpenCard }) => {
   const isUser = message.role === 'user';
 
-  // Format content to replace [Card: <id> - <title>] with interactive citation pills
-  const renderFormattedContent = (content: string, citations?: RAGCitation[]) => {
-    // Regular expression matching [Card: <id> - <title>] or [Card: <id>]
-    const citationRegex = /\[Card:\s*([0-9a-fA-F-]+)(?:\s*-\s*([^\]]+))?\]/g;
-
-    const parts: React.ReactNode[] = [];
-    let lastIndex = 0;
-    let match: RegExpExecArray | null;
-
-    const citationMap = new Map<string, RAGCitation>();
-    if (citations) {
-      for (const cit of citations) {
-        citationMap.set(cit.card_id, cit);
+  const citationMap = useMemo(() => {
+    const map = new Map<string, RAGCitation>();
+    if (message.citations) {
+      for (const cit of message.citations) {
+        map.set(cit.card_id, cit);
       }
     }
+    return map;
+  }, [message.citations]);
 
-    while ((match = citationRegex.exec(content)) !== null) {
-      // Text before citation
-      if (match.index > lastIndex) {
-        parts.push(
-          <span key={`text-${lastIndex}`}>
-            {content.slice(lastIndex, match.index)}
-          </span>
-        );
+  // Convert [Card: <id> - <title>] tokens into safe internal markdown links so
+  // ReactMarkdown renders bold, tables, lists, code blocks AND interactive CitationBadges together.
+  const preparedMarkdown = useMemo(() => {
+    if (isUser) return message.content;
+    return message.content.replace(
+      /\[Card:\s*([0-9a-fA-F-]+)(?:\s*-\s*([^\]]+))?\]/g,
+      (_match, cardId: string, rawTitle?: string) => {
+        const cleanTitle = (rawTitle || citationMap.get(cardId)?.title || 'Cited Source')
+          .replace(/[\[\]()]/g, '')
+          .trim();
+        return `[${cleanTitle}](${CITATION_HREF_PREFIX}${cardId})`;
       }
-
-      const cardId = match[1];
-      const cardTitle = match[2] || 'Cited Source';
-
-      const existingCitation = citationMap.get(cardId) || {
-        card_id: cardId,
-        title: cardTitle,
-        content_type: 'note',
-        snippet: '',
-      };
-
-      parts.push(
-        <CitationBadge
-          key={`cit-${match.index}`}
-          citation={existingCitation}
-          onOpenCard={onOpenCard}
-        />
-      );
-
-      lastIndex = match.index + match[0].length;
-    }
-
-    // Remaining text after last citation
-    if (lastIndex < content.length) {
-      parts.push(
-        <span key={`text-${lastIndex}`}>
-          {content.slice(lastIndex)}
-        </span>
-      );
-    }
-
-    return parts;
-  };
+    );
+  }, [isUser, message.content, citationMap]);
 
   const formattedTime = new Date(message.timestamp).toLocaleTimeString([], {
     hour: '2-digit',
     minute: '2-digit',
   });
+
+  // Show the Grounded badge ONLY on answers that actually have citations (never on greeting or uncited errors)
+  const hasCitations = Boolean(message.citations && message.citations.length > 0);
+  const showVerificationFooter =
+    !isUser &&
+    message.id !== 'welcome-msg' &&
+    Boolean(message.verification) &&
+    hasCitations;
 
   return (
     <div
@@ -163,15 +141,55 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({ message, onOpe
             color: 'var(--text-main)',
             fontSize: '0.94rem',
             lineHeight: 1.65,
-            whiteSpace: 'pre-wrap',
             wordBreak: 'break-word',
           }}
         >
-          {renderFormattedContent(message.content, message.citations)}
+          {isUser ? (
+            <div style={{ whiteSpace: 'pre-wrap' }}>{message.content}</div>
+          ) : (
+            <div className="chat-markdown">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  a: ({ href, children }) => {
+                    if (href && href.startsWith(CITATION_HREF_PREFIX)) {
+                      const cardId = href.slice(CITATION_HREF_PREFIX.length);
+                      const fallbackTitle = String(children || 'Cited Source');
+                      const existingCitation = citationMap.get(cardId) || {
+                        card_id: cardId,
+                        title: fallbackTitle,
+                        content_type: 'note',
+                        snippet: '',
+                      };
+                      return (
+                        <CitationBadge
+                          citation={existingCitation}
+                          onOpenCard={onOpenCard}
+                        />
+                      );
+                    }
+                    // Allow only safe http(s) links (prevents javascript: XSS)
+                    const safeHref =
+                      href && /^https?:\/\//i.test(href) ? href : undefined;
+                    if (!safeHref) {
+                      return <span>{children}</span>;
+                    }
+                    return (
+                      <a href={safeHref} target="_blank" rel="noopener noreferrer">
+                        {children}
+                      </a>
+                    );
+                  },
+                }}
+              >
+                {preparedMarkdown}
+              </ReactMarkdown>
+            </div>
+          )}
         </div>
 
-        {/* Grounding & Verification Metadata Footer (for Assistant) */}
-        {!isUser && message.verification && (
+        {/* Grounding & Verification Metadata Footer (ONLY on cited answers, never greeting) */}
+        {showVerificationFooter && message.verification && (
           <div
             style={{
               display: 'flex',
@@ -249,7 +267,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({ message, onOpe
         )}
 
         {/* Source Cards List Preview */}
-        {!isUser && message.citations && message.citations.length > 0 && (
+        {!isUser && hasCitations && message.citations && (
           <div
             style={{
               marginTop: '0.85rem',
