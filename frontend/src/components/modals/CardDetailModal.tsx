@@ -56,7 +56,16 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
     }
   };
 
-  const previewImage = card.metadata?.imageUrl;
+  const rawPreviewImage = card.metadata?.imageUrl;
+  const previewImage =
+    typeof rawPreviewImage === 'string' && /^https?:\/\//i.test(rawPreviewImage)
+      ? rawPreviewImage
+      : undefined;
+  const rawExternalUrl = card.metadata?.url;
+  const safeExternalUrl =
+    typeof rawExternalUrl === 'string' && /^https?:\/\//i.test(rawExternalUrl)
+      ? rawExternalUrl
+      : undefined;
 
   return (
     <div
@@ -277,11 +286,11 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
               )}
             </button>
 
-            {card.content_type === 'link' && card.metadata?.url && (
+            {card.content_type === 'link' && safeExternalUrl && (
               <a
-                href={card.metadata.url}
+                href={safeExternalUrl}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="btn btn-secondary"
                 style={{ padding: '0.5rem 0.85rem', fontSize: '0.8rem' }}
               >
