@@ -1,0 +1,289 @@
+%PDF-1.4
+%“Œ‹ž ReportLab Generated PDF document (opensource)
+1 0 obj
+<<
+/F1 2 0 R /F2 3 0 R
+>>
+endobj
+2 0 obj
+<<
+/BaseFont /Helvetica /Encoding /WinAnsiEncoding /Name /F1 /Subtype /Type1 /Type /Font
+>>
+endobj
+3 0 obj
+<<
+/BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding /Name /F2 /Subtype /Type1 /Type /Font
+>>
+endobj
+4 0 obj
+<<
+/Contents 10 0 R /MediaBox [ 0 0 612 792 ] /Parent 9 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+5 0 obj
+<<
+/Contents 11 0 R /MediaBox [ 0 0 612 792 ] /Parent 9 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+6 0 obj
+<<
+/Contents 12 0 R /MediaBox [ 0 0 612 792 ] /Parent 9 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+7 0 obj
+<<
+/PageMode /UseNone /Pages 9 0 R /Type /Catalog
+>>
+endobj
+8 0 obj
+<<
+/Author (Kartik Patel) /CreationDate (D:20261118195038+05'00') /Creator (\(unspecified\)) /Keywords () /ModDate (D:20261118195038+05'00') /Producer (ReportLab PDF Library - \(opensource\)) 
+  /Subject (\(unspecified\)) /Title (Long Distributed Database Systems Handbook) /Trapped /False
+>>
+endobj
+9 0 obj
+<<
+/Count 3 /Kids [ 4 0 R 5 0 R 6 0 R ] /Type /Pages
+>>
+endobj
+10 0 obj
+<<
+/Length 4172
+>>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+1 0 0 1 63.6 706.4 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 5 Tm /F2 17 Tf 22 TL 53.003 0 Td (Long Distributed Database Systems Handbook) Tj T* -53.003 0 Td ET
+Q
+Q
+q
+1 0 0 1 63.6 688.4 cm
+Q
+q
+1 0 0 1 63.6 660.4 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 5 Tm /F2 13 Tf 18 TL (Comprehensive Distributed Storage Architecture) Tj T* ET
+Q
+Q
+q
+1 0 0 1 63.6 581.9 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 62 Tm /F1 10.5 Tf 14.5 TL (Chapter 1: Distributed storage engines coordinate write-ahead logging, snapshot isolation, checkpoint) Tj T* (flushing, buffer pool eviction policies, and crash recovery across replicated PostgreSQL database) Tj T* (clusters. Query optimizers estimate selectivity histograms, join cardinalities, hash aggregation memory) Tj T* (budgets, and parallel worker execution plans to maintain predictable tail latency under concurrent) Tj T* (analytical workloads.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 63.6 501.4 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 62 Tm /F1 10.5 Tf 14.5 TL (Chapter 2: Distributed storage engines coordinate write-ahead logging, snapshot isolation, checkpoint) Tj T* (flushing, buffer pool eviction policies, and crash recovery across replicated PostgreSQL database) Tj T* (clusters. Query optimizers estimate selectivity histograms, join cardinalities, hash aggregation memory) Tj T* (budgets, and parallel worker execution plans to maintain predictable tail latency under concurrent) Tj T* (analytical workloads.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 63.6 420.9 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 62 Tm /F1 10.5 Tf 14.5 TL (Chapter 3: Distributed storage engines coordinate write-ahead logging, snapshot isolation, checkpoint) Tj T* (flushing, buffer pool eviction policies, and crash recovery across replicated PostgreSQL database) Tj T* (clusters. Query optimizers estimate selectivity histograms, join cardinalities, hash aggregation memory) Tj T* (budgets, and parallel worker execution plans to maintain predictable tail latency under concurrent) Tj T* (analytical workloads.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 63.6 340.4 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 62 Tm /F1 10.5 Tf 14.5 TL (Chapter 4: Distributed storage engines coordinate write-ahead logging, snapshot isolation, checkpoint) Tj T* (flushing, buffer pool eviction policies, and crash recovery across replicated PostgreSQL database) Tj T* (clusters. Query optimizers estimate selectivity histograms, join cardinalities, hash aggregation memory) Tj T* (budgets, and parallel worker execution plans to maintain predictable tail latency under concurrent) Tj T* (analytical workloads.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 63.6 259.9 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 62 Tm /F1 10.5 Tf 14.5 TL (Chapter 5: Distributed storage engines coordinate write-ahead logging, snapshot isolation, checkpoint) Tj T* (flushing, buffer pool eviction policies, and crash recovery across replicated PostgreSQL database) Tj T* (clusters. Query optimizers estimate selectivity histograms, join cardinalities, hash aggregation memory) Tj T* (budgets, and parallel worker execution plans to maintain predictable tail latency under concurrent) Tj T* (analytical workloads.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 63.6 179.4 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 62 Tm /F1 10.5 Tf 14.5 TL (Chapter 6: Distributed storage engines coordinate write-ahead logging, snapshot isolation, checkpoint) Tj T* (flushing, buffer pool eviction policies, and crash recovery across replicated PostgreSQL database) Tj T* (clusters. Query optimizers estimate selectivity histograms, join cardinalities, hash aggregation memory) Tj T* (budgets, and parallel worker execution plans to maintain predictable tail latency under concurrent) Tj T* (analytical workloads.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 63.6 98.9 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 62 Tm /F1 10.5 Tf 14.5 TL (Chapter 7: Distributed storage engines coordinate write-ahead logging, snapshot isolation, checkpoint) Tj T* (flushing, buffer pool eviction policies, and crash recovery across replicated PostgreSQL database) Tj T* (clusters. Query optimizers estimate selectivity histograms, join cardinalities, hash aggregation memory) Tj T* (budgets, and parallel worker execution plans to maintain predictable tail latency under concurrent) Tj T* (analytical workloads.) Tj T* ET
+Q
+Q
+ 
+endstream
+endobj
+11 0 obj
+<<
+/Length 4415
+>>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+1 0 0 1 63.6 655.9 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 62 Tm /F1 10.5 Tf 14.5 TL (Chapter 8: Distributed storage engines coordinate write-ahead logging, snapshot isolation, checkpoint) Tj T* (flushing, buffer pool eviction policies, and crash recovery across replicated PostgreSQL database) Tj T* (clusters. Query optimizers estimate selectivity histograms, join cardinalities, hash aggregation memory) Tj T* (budgets, and parallel worker execution plans to maintain predictable tail latency under concurrent) Tj T* (analytical workloads.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 63.6 575.4 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 62 Tm /F1 10.5 Tf 14.5 TL (Chapter 9: Distributed storage engines coordinate write-ahead logging, snapshot isolation, checkpoint) Tj T* (flushing, buffer pool eviction policies, and crash recovery across replicated PostgreSQL database) Tj T* (clusters. Query optimizers estimate selectivity histograms, join cardinalities, hash aggregation memory) Tj T* (budgets, and parallel worker execution plans to maintain predictable tail latency under concurrent) Tj T* (analytical workloads.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 63.6 494.9 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 62 Tm /F1 10.5 Tf 14.5 TL (Chapter 10: Distributed storage engines coordinate write-ahead logging, snapshot isolation, checkpoint) Tj T* (flushing, buffer pool eviction policies, and crash recovery across replicated PostgreSQL database) Tj T* (clusters. Query optimizers estimate selectivity histograms, join cardinalities, hash aggregation memory) Tj T* (budgets, and parallel worker execution plans to maintain predictable tail latency under concurrent) Tj T* (analytical workloads.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 63.6 414.4 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 62 Tm /F1 10.5 Tf 14.5 TL (Chapter 11: Distributed storage engines coordinate write-ahead logging, snapshot isolation, checkpoint) Tj T* (flushing, buffer pool eviction policies, and crash recovery across replicated PostgreSQL database) Tj T* (clusters. Query optimizers estimate selectivity histograms, join cardinalities, hash aggregation memory) Tj T* (budgets, and parallel worker execution plans to maintain predictable tail latency under concurrent) Tj T* (analytical workloads.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 63.6 333.9 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 62 Tm /F1 10.5 Tf 14.5 TL (Chapter 12: Distributed storage engines coordinate write-ahead logging, snapshot isolation, checkpoint) Tj T* (flushing, buffer pool eviction policies, and crash recovery across replicated PostgreSQL database) Tj T* (clusters. Query optimizers estimate selectivity histograms, join cardinalities, hash aggregation memory) Tj T* (budgets, and parallel worker execution plans to maintain predictable tail latency under concurrent) Tj T* (analytical workloads.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 63.6 253.4 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 62 Tm /F1 10.5 Tf 14.5 TL (Chapter 13: Distributed storage engines coordinate write-ahead logging, snapshot isolation, checkpoint) Tj T* (flushing, buffer pool eviction policies, and crash recovery across replicated PostgreSQL database) Tj T* (clusters. Query optimizers estimate selectivity histograms, join cardinalities, hash aggregation memory) Tj T* (budgets, and parallel worker execution plans to maintain predictable tail latency under concurrent) Tj T* (analytical workloads.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 63.6 172.9 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 62 Tm /F1 10.5 Tf 14.5 TL (Chapter 14: Distributed storage engines coordinate write-ahead logging, snapshot isolation, checkpoint) Tj T* (flushing, buffer pool eviction policies, and crash recovery across replicated PostgreSQL database) Tj T* (clusters. Query optimizers estimate selectivity histograms, join cardinalities, hash aggregation memory) Tj T* (budgets, and parallel worker execution plans to maintain predictable tail latency under concurrent) Tj T* (analytical workloads.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 63.6 92.4 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 62 Tm /F1 10.5 Tf 14.5 TL (Chapter 15: Distributed storage engines coordinate write-ahead logging, snapshot isolation, checkpoint) Tj T* (flushing, buffer pool eviction policies, and crash recovery across replicated PostgreSQL database) Tj T* (clusters. Query optimizers estimate selectivity histograms, join cardinalities, hash aggregation memory) Tj T* (budgets, and parallel worker execution plans to maintain predictable tail latency under concurrent) Tj T* (analytical workloads.) Tj T* ET
+Q
+Q
+ 
+endstream
+endobj
+12 0 obj
+<<
+/Length 3650
+>>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+1 0 0 1 63.6 655.9 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 62 Tm /F1 10.5 Tf 14.5 TL (Chapter 16: Distributed storage engines coordinate write-ahead logging, snapshot isolation, checkpoint) Tj T* (flushing, buffer pool eviction policies, and crash recovery across replicated PostgreSQL database) Tj T* (clusters. Query optimizers estimate selectivity histograms, join cardinalities, hash aggregation memory) Tj T* (budgets, and parallel worker execution plans to maintain predictable tail latency under concurrent) Tj T* (analytical workloads.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 63.6 575.4 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 62 Tm /F1 10.5 Tf 14.5 TL (Chapter 17: Distributed storage engines coordinate write-ahead logging, snapshot isolation, checkpoint) Tj T* (flushing, buffer pool eviction policies, and crash recovery across replicated PostgreSQL database) Tj T* (clusters. Query optimizers estimate selectivity histograms, join cardinalities, hash aggregation memory) Tj T* (budgets, and parallel worker execution plans to maintain predictable tail latency under concurrent) Tj T* (analytical workloads.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 63.6 494.9 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 62 Tm /F1 10.5 Tf 14.5 TL (Chapter 18: Distributed storage engines coordinate write-ahead logging, snapshot isolation, checkpoint) Tj T* (flushing, buffer pool eviction policies, and crash recovery across replicated PostgreSQL database) Tj T* (clusters. Query optimizers estimate selectivity histograms, join cardinalities, hash aggregation memory) Tj T* (budgets, and parallel worker execution plans to maintain predictable tail latency under concurrent) Tj T* (analytical workloads.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 63.6 414.4 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 62 Tm /F1 10.5 Tf 14.5 TL (Chapter 19: Distributed storage engines coordinate write-ahead logging, snapshot isolation, checkpoint) Tj T* (flushing, buffer pool eviction policies, and crash recovery across replicated PostgreSQL database) Tj T* (clusters. Query optimizers estimate selectivity histograms, join cardinalities, hash aggregation memory) Tj T* (budgets, and parallel worker execution plans to maintain predictable tail latency under concurrent) Tj T* (analytical workloads.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 63.6 333.9 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 62 Tm /F1 10.5 Tf 14.5 TL (Chapter 20: Distributed storage engines coordinate write-ahead logging, snapshot isolation, checkpoint) Tj T* (flushing, buffer pool eviction policies, and crash recovery across replicated PostgreSQL database) Tj T* (clusters. Query optimizers estimate selectivity histograms, join cardinalities, hash aggregation memory) Tj T* (budgets, and parallel worker execution plans to maintain predictable tail latency under concurrent) Tj T* (analytical workloads.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 63.6 253.4 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 62 Tm /F1 10.5 Tf 14.5 TL (Chapter 21: Distributed storage engines coordinate write-ahead logging, snapshot isolation, checkpoint) Tj T* (flushing, buffer pool eviction policies, and crash recovery across replicated PostgreSQL database) Tj T* (clusters. Query optimizers estimate selectivity histograms, join cardinalities, hash aggregation memory) Tj T* (budgets, and parallel worker execution plans to maintain predictable tail latency under concurrent) Tj T* (analytical workloads.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 63.6 201.9 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 33 Tm /F1 10.5 Tf 14.5 TL (Final Appendix Verification Marker: During long-document indexing diagnostics, the verification beacon) Tj T* (code BLUE-HERON-47 confirms that full-text extraction and chunked vector indexing read all the way to) Tj T* (the final page.) Tj T* ET
+Q
+Q
+ 
+endstream
+endobj
+xref
+0 13
+0000000000 65535 f 
+0000000061 00000 n 
+0000000102 00000 n 
+0000000209 00000 n 
+0000000321 00000 n 
+0000000515 00000 n 
+0000000709 00000 n 
+0000000903 00000 n 
+0000000971 00000 n 
+0000001279 00000 n 
+0000001350 00000 n 
+0000005574 00000 n 
+0000010041 00000 n 
+trailer
+<<
+/ID 
+[<3ba4bb981bfa25b156553227d6b1f8c4><3ba4bb981bfa25b156553227d6b1f8c4>]
+% ReportLab generated PDF document -- digest (opensource)
+
+/Info 8 0 R
+/Root 7 0 R
+/Size 13
+>>
+startxref
+13743
+%%EOF

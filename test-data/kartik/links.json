@@ -1,0 +1,42 @@
+[
+  {
+    "url": "https://en.wikipedia.org/wiki/Retrieval-augmented_generation",
+    "tags": [
+      "RAG",
+      "AI",
+      "Research",
+      "Web Link"
+    ],
+    "description": "Wikipedia article explaining Retrieval-Augmented Generation (RAG) architecture and grounding."
+  },
+  {
+    "url": "https://en.wikipedia.org/wiki/PostgreSQL",
+    "tags": [
+      "PostgreSQL",
+      "DBMS",
+      "Database",
+      "Web Link"
+    ],
+    "description": "Wikipedia overview of PostgreSQL relational database architecture, MVCC, and extensibility."
+  },
+  {
+    "url": "https://fastapi.tiangolo.com/",
+    "tags": [
+      "FastAPI",
+      "Python",
+      "Backend",
+      "Web Link"
+    ],
+    "description": "Official FastAPI web framework documentation used for LinkUp's ML microservice."
+  },
+  {
+    "url": "https://github.com/pgvector/pgvector",
+    "tags": [
+      "pgvector",
+      "PostgreSQL",
+      "Vector Search",
+      "Web Link"
+    ],
+    "description": "Official pgvector GitHub repository for open-source vector similarity search in PostgreSQL."
+  }
+]

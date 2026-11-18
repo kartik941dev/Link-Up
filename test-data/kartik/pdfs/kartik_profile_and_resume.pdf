@@ -1,0 +1,177 @@
+%PDF-1.4
+%“Œ‹ž ReportLab Generated PDF document (opensource)
+1 0 obj
+<<
+/F1 2 0 R /F2 3 0 R /F3 4 0 R
+>>
+endobj
+2 0 obj
+<<
+/BaseFont /Helvetica /Encoding /WinAnsiEncoding /Name /F1 /Subtype /Type1 /Type /Font
+>>
+endobj
+3 0 obj
+<<
+/BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding /Name /F2 /Subtype /Type1 /Type /Font
+>>
+endobj
+4 0 obj
+<<
+/BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding /Name /F3 /Subtype /Type1 /Type /Font
+>>
+endobj
+5 0 obj
+<<
+/Contents 9 0 R /MediaBox [ 0 0 612 792 ] /Parent 8 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+6 0 obj
+<<
+/PageMode /UseNone /Pages 8 0 R /Type /Catalog
+>>
+endobj
+7 0 obj
+<<
+/Author (Kartik Patel) /CreationDate (D:20261118171723+05'00') /Creator (\(unspecified\)) /Keywords () /ModDate (D:20261118171723+05'00') /Producer (ReportLab PDF Library - \(opensource\)) 
+  /Subject (\(unspecified\)) /Title (Kartik Patel - Technical Profile and Project Portfolio) /Trapped /False
+>>
+endobj
+8 0 obj
+<<
+/Count 1 /Kids [ 5 0 R ] /Type /Pages
+>>
+endobj
+9 0 obj
+<<
+/Length 3256
+>>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+1 0 0 1 67.2 702.8 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 4 Tm /F2 18 Tf 22 TL 18.237 0 Td (Kartik Patel - Technical Profile and Project Portfolio) Tj T* -18.237 0 Td ET
+Q
+Q
+q
+1 0 0 1 67.2 676.8 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F3 10 Tf 12 TL (Author: Kartik Patel) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 666.8 cm
+Q
+q
+1 0 0 1 67.2 636.8 cm
+q
+BT 1 0 0 1 0 5 Tm 18 TL /F2 13 Tf 0 0 0 rg (1. Personal Summary & Education) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 600.8 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 19.5 Tm /F1 10.5 Tf 15 TL (Kartik Patel is a final-year B.Tech Computer Science and Engineering student at Bennett University) Tj T* (\(Enrollment ID: E23CSEU1724\) with a cumulative GPA of 9.1 out of 10.0.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 562.8 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 19.5 Tm /F1 10.5 Tf 15 TL (His primary academic focus areas are Database Management Systems \(DBMS\), Distributed Backend) Tj T* (Engineering, Information Retrieval, and Applied Machine Learning.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 509.8 cm
+q
+BT 1 0 0 1 0 34.5 Tm 15 TL /F1 10.5 Tf 0 0 0 rg (During Summer 2026, Kartik completed a Backend & AI Engineering Internship at CloudScale) Tj T* (Analytics in Bengaluru, where he built high-throughput PostgreSQL ingestion pipelines and semantic) Tj T* (search microservices.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 479.8 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 5 Tm /F2 13 Tf 18 TL (2. Flagship Project: LinkUp Intelligent Knowledge Management) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 443.8 cm
+q
+BT 1 0 0 1 0 19.5 Tm 15 TL /F1 10.5 Tf 0 0 0 rg (LinkUp is Kartik) Tj (') Tj (s capstone DBMS project designed to unify personal notes, PDF research papers,) Tj T* (Word documents \(DOCX\), and web bookmarks into a single queryable knowledge graph.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 390.8 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 34.5 Tm /F1 10.5 Tf 15 TL (The backend API is written in TypeScript using Node.js and Express, storing all structured data and) Tj T* (384-dimensional dense vector embeddings in Neon Serverless PostgreSQL with the pgvector) Tj T* (extension.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 337.8 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 34.5 Tm /F1 10.5 Tf 15 TL (The companion Python FastAPI ML microservice runs SentenceTransformers \(all-MiniLM-L6-v2\),) Tj T* (NetworkX PageRank centrality, Louvain community detection for Smart Arrange clustering, and an) Tj T* (Agentic RAG pipeline powered by Groq Llama 3.1 with automated hallucination verification.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 307.8 cm
+q
+BT 1 0 0 1 0 5 Tm 18 TL /F2 13 Tf 0 0 0 rg (3. Core Technical Skills & Achievements) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 271.8 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 19.5 Tm /F1 10.5 Tf 15 TL (Languages: TypeScript, JavaScript, Python, SQL, C++. Frameworks: Node.js, Express, FastAPI,) Tj T* (React, Vite.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 233.8 cm
+q
+BT 1 0 0 1 0 19.5 Tm 15 TL /F1 10.5 Tf 0 0 0 rg (Databases & AI: PostgreSQL, pgvector, Neon Cloud DB, Full-Text Search \(GIN\),) Tj T* (SentenceTransformers, Groq LLM API, NetworkX, Scikit-learn.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 195.8 cm
+q
+BT 1 0 0 1 0 19.5 Tm 15 TL /F1 10.5 Tf 0 0 0 rg (Achievements: Smart India Hackathon 2025 National Finalist, Bennett University Dean) Tj (') Tj (s List for 5) Tj T* (consecutive semesters, and open-source contributor to pgvector tooling.) Tj T* ET
+Q
+Q
+ 
+endstream
+endobj
+xref
+0 10
+0000000000 65535 f 
+0000000061 00000 n 
+0000000112 00000 n 
+0000000219 00000 n 
+0000000331 00000 n 
+0000000446 00000 n 
+0000000639 00000 n 
+0000000707 00000 n 
+0000001027 00000 n 
+0000001086 00000 n 
+trailer
+<<
+/ID 
+[<9f05baa7ea7b17495b889717342f95dc><9f05baa7ea7b17495b889717342f95dc>]
+% ReportLab generated PDF document -- digest (opensource)
+
+/Info 7 0 R
+/Root 6 0 R
+/Size 10
+>>
+startxref
+4393
+%%EOF

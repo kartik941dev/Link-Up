@@ -1,0 +1,127 @@
+%PDF-1.4
+%“Œ‹ž ReportLab Generated PDF document (opensource)
+1 0 obj
+<<
+/F1 2 0 R /F2 3 0 R
+>>
+endobj
+2 0 obj
+<<
+/BaseFont /Helvetica /Encoding /WinAnsiEncoding /Name /F1 /Subtype /Type1 /Type /Font
+>>
+endobj
+3 0 obj
+<<
+/BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding /Name /F2 /Subtype /Type1 /Type /Font
+>>
+endobj
+4 0 obj
+<<
+/Contents 8 0 R /MediaBox [ 0 0 612 792 ] /Parent 7 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+5 0 obj
+<<
+/PageMode /UseNone /Pages 7 0 R /Type /Catalog
+>>
+endobj
+6 0 obj
+<<
+/Author (Kartik Patel) /CreationDate (D:20261118195038+05'00') /Creator (\(unspecified\)) /Keywords () /ModDate (D:20261118195038+05'00') /Producer (ReportLab PDF Library - \(opensource\)) 
+  /Subject (\(unspecified\)) /Title (Database Indexing and B-tree Internals) /Trapped /False
+>>
+endobj
+7 0 obj
+<<
+/Count 1 /Kids [ 4 0 R ] /Type /Pages
+>>
+endobj
+8 0 obj
+<<
+/Length 1438
+>>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+1 0 0 1 63.6 706.4 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 5 Tm /F2 17 Tf 22 TL 85.1075 0 Td (Database Indexing and B-tree Internals) Tj T* -85.1075 0 Td ET
+Q
+Q
+q
+1 0 0 1 63.6 688.4 cm
+Q
+q
+1 0 0 1 63.6 660.4 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 5 Tm /F2 13 Tf 18 TL (How B-tree Indexes Accelerate SQL Queries) Tj T* ET
+Q
+Q
+q
+1 0 0 1 63.6 625.4 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 18.5 Tm /F1 10.5 Tf 14.5 TL (A B-tree index is a self-balancing search tree used as the default index structure in PostgreSQL and) Tj T* (relational database management systems.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 63.6 588.4 cm
+q
+BT 1 0 0 1 0 18.5 Tm 14.5 TL /F1 10.5 Tf 0 0 0 rg (B-tree nodes keep keys sorted so equality lookups, range scans \(BETWEEN, <) Tj (, >) Tj (\), and ORDER BY) Tj T* (clauses run in O\(log N\) disk page reads instead of full table scans.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 63.6 551.4 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 18.5 Tm /F1 10.5 Tf 14.5 TL (Leaf nodes in a B-tree store pointers to heap tuples and are doubly linked to allow fast sequential range) Tj T* (traversal.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 63.6 523.4 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 5 Tm /F2 13 Tf 18 TL (GIN and Vector Indexes) Tj T* ET
+Q
+Q
+q
+1 0 0 1 63.6 488.4 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 18.5 Tm /F1 10.5 Tf 14.5 TL (Alongside B-tree indexes, PostgreSQL offers GIN indexes for full-text search and HNSW indexes via) Tj T* (pgvector for approximate nearest neighbor vector search.) Tj T* ET
+Q
+Q
+ 
+endstream
+endobj
+xref
+0 9
+0000000000 65535 f 
+0000000061 00000 n 
+0000000102 00000 n 
+0000000209 00000 n 
+0000000321 00000 n 
+0000000514 00000 n 
+0000000582 00000 n 
+0000000886 00000 n 
+0000000945 00000 n 
+trailer
+<<
+/ID 
+[<62fd9b7c76a6056363c04137b5fe5b7b><62fd9b7c76a6056363c04137b5fe5b7b>]
+% ReportLab generated PDF document -- digest (opensource)
+
+/Info 6 0 R
+/Root 5 0 R
+/Size 9
+>>
+startxref
+2434
+%%EOF

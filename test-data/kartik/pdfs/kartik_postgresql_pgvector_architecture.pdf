@@ -1,0 +1,165 @@
+%PDF-1.4
+%“Œ‹ž ReportLab Generated PDF document (opensource)
+1 0 obj
+<<
+/F1 2 0 R /F2 3 0 R /F3 4 0 R
+>>
+endobj
+2 0 obj
+<<
+/BaseFont /Helvetica /Encoding /WinAnsiEncoding /Name /F1 /Subtype /Type1 /Type /Font
+>>
+endobj
+3 0 obj
+<<
+/BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding /Name /F2 /Subtype /Type1 /Type /Font
+>>
+endobj
+4 0 obj
+<<
+/BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding /Name /F3 /Subtype /Type1 /Type /Font
+>>
+endobj
+5 0 obj
+<<
+/Contents 9 0 R /MediaBox [ 0 0 612 792 ] /Parent 8 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+6 0 obj
+<<
+/PageMode /UseNone /Pages 8 0 R /Type /Catalog
+>>
+endobj
+7 0 obj
+<<
+/Author (Kartik Patel) /CreationDate (D:20261118171723+05'00') /Creator (\(unspecified\)) /Keywords () /ModDate (D:20261118171723+05'00') /Producer (ReportLab PDF Library - \(opensource\)) 
+  /Subject (\(unspecified\)) /Title (PostgreSQL Internals, Indexing and pgvector Architecture Guide) /Trapped /False
+>>
+endobj
+8 0 obj
+<<
+/Count 1 /Kids [ 5 0 R ] /Type /Pages
+>>
+endobj
+9 0 obj
+<<
+/Length 2835
+>>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+1 0 0 1 67.2 680.8 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 26 Tm /F2 18 Tf 22 TL 45.75 0 Td (PostgreSQL Internals, Indexing and pgvector) Tj T* 112.032 0 Td (Architecture Guide) Tj T* -157.782 0 Td ET
+Q
+Q
+q
+1 0 0 1 67.2 654.8 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F3 10 Tf 12 TL (Author: Kartik Patel) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 644.8 cm
+Q
+q
+1 0 0 1 67.2 614.8 cm
+q
+BT 1 0 0 1 0 5 Tm 18 TL /F2 13 Tf 0 0 0 rg (1. Relational Storage & ACID Guarantees) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 578.8 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 19.5 Tm /F1 10.5 Tf 15 TL (PostgreSQL ensures full ACID compliance \(Atomicity, Consistency, Isolation, Durability\) through) Tj T* (Multi-Version Concurrency Control \(MVCC\) and Write-Ahead Logging \(WAL\).) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 525.8 cm
+q
+BT 1 0 0 1 0 34.5 Tm 15 TL /F1 10.5 Tf 0 0 0 rg (In LinkUp) Tj (') Tj (s PostgreSQL schema, six core tables organize knowledge data: users, cards, tags,) Tj T* (card_tags, graph_edges, and migrations. All child records cascade cleanly on delete via foreign key) Tj T* (constraints.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 495.8 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 5 Tm /F2 13 Tf 18 TL (2. Indexing Strategies: B-Tree, GIN, and pgvector) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 459.8 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 19.5 Tm /F1 10.5 Tf 15 TL (B-Tree indexes accelerate primary key lookups, user_id filtering \(idx_cards_user_id\), and) Tj T* (chronological sorting on created_at DESC.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 421.8 cm
+q
+BT 1 0 0 1 0 19.5 Tm 15 TL /F1 10.5 Tf 0 0 0 rg (Generalized Inverted Indexes \(GIN\) power PostgreSQL Full-Text Search over coalesce\(title, ') Tj (') Tj (\) || ' ' ||) Tj T* (coalesce\(extracted_text, ') Tj (') Tj (\) using English stemming via to_tsvector and plainto_tsquery.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 383.8 cm
+q
+BT 1 0 0 1 0 19.5 Tm 15 TL /F1 10.5 Tf 0 0 0 rg (The pgvector extension introduces the vector\(384\) column type and cosine distance operator \() Tj (<) Tj (=) Tj (>) Tj (\).) Tj T* (Cosine similarity is computed directly inside SQL as 1 - \(embedding <) Tj (=) Tj (> query_vector\).) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 353.8 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 5 Tm /F2 13 Tf 18 TL (3. Connection Pooling on Neon Serverless PostgreSQL) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 302.8 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 34.5 Tm /F1 10.5 Tf 15 TL (Neon Serverless PostgreSQL suspends idle compute endpoints automatically to save cost. Therefore,) Tj T* (backend clients must configure TCP keepalives and validate pooled connections before executing) Tj T* (queries.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 249.8 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 34.5 Tm /F1 10.5 Tf 15 TL (In LinkUp, Node.js uses pg.Pool with max=20 connections and SSL enabled, while Python uses) Tj T* (psycopg2 SimpleConnectionPool with keepalives_idle=30 seconds and automatic stale-connection) Tj T* (recovery.) Tj T* ET
+Q
+Q
+ 
+endstream
+endobj
+xref
+0 10
+0000000000 65535 f 
+0000000061 00000 n 
+0000000112 00000 n 
+0000000219 00000 n 
+0000000331 00000 n 
+0000000446 00000 n 
+0000000639 00000 n 
+0000000707 00000 n 
+0000001035 00000 n 
+0000001094 00000 n 
+trailer
+<<
+/ID 
+[<c41940508c36ac984325bd34fb19eba8><c41940508c36ac984325bd34fb19eba8>]
+% ReportLab generated PDF document -- digest (opensource)
+
+/Info 7 0 R
+/Root 6 0 R
+/Size 10
+>>
+startxref
+3980
+%%EOF

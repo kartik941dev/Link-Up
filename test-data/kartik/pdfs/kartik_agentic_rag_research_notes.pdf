@@ -1,0 +1,160 @@
+%PDF-1.4
+%“Œ‹ž ReportLab Generated PDF document (opensource)
+1 0 obj
+<<
+/F1 2 0 R /F2 3 0 R /F3 4 0 R
+>>
+endobj
+2 0 obj
+<<
+/BaseFont /Helvetica /Encoding /WinAnsiEncoding /Name /F1 /Subtype /Type1 /Type /Font
+>>
+endobj
+3 0 obj
+<<
+/BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding /Name /F2 /Subtype /Type1 /Type /Font
+>>
+endobj
+4 0 obj
+<<
+/BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding /Name /F3 /Subtype /Type1 /Type /Font
+>>
+endobj
+5 0 obj
+<<
+/Contents 9 0 R /MediaBox [ 0 0 612 792 ] /Parent 8 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+6 0 obj
+<<
+/PageMode /UseNone /Pages 8 0 R /Type /Catalog
+>>
+endobj
+7 0 obj
+<<
+/Author (Kartik Patel) /CreationDate (D:20261118171723+05'00') /Creator (\(unspecified\)) /Keywords () /ModDate (D:20261118171723+05'00') /Producer (ReportLab PDF Library - \(opensource\)) 
+  /Subject (\(unspecified\)) /Title (Agentic RAG, Graph Expansion and Hallucination Verification Notes) /Trapped /False
+>>
+endobj
+8 0 obj
+<<
+/Count 1 /Kids [ 5 0 R ] /Type /Pages
+>>
+endobj
+9 0 obj
+<<
+/Length 2608
+>>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+1 0 0 1 67.2 680.8 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 26 Tm /F2 18 Tf 22 TL 26.256 0 Td (Agentic RAG, Graph Expansion and Hallucination) Tj T* 136.026 0 Td (Verification Notes) Tj T* -162.282 0 Td ET
+Q
+Q
+q
+1 0 0 1 67.2 654.8 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F3 10 Tf 12 TL (Author: Kartik Patel) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 644.8 cm
+Q
+q
+1 0 0 1 67.2 614.8 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 5 Tm /F2 13 Tf 18 TL (1. Hybrid Retrieval Pipeline) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 578.8 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 19.5 Tm /F1 10.5 Tf 15 TL (Pure semantic vector search can miss exact identifiers such as course codes, function names, or) Tj T* (dates, whereas pure keyword search misses conceptual synonyms.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 525.8 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 34.5 Tm /F1 10.5 Tf 15 TL (LinkUp solves this using hybrid retrieval in PostgreSQL: combining pgvector cosine similarity \(weight) Tj T* (0.75\) with normalized ts_rank_cd full-text search scores \(weight 0.25\) to retrieve the top 8 candidate) Tj T* (cards.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 495.8 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 5 Tm /F2 13 Tf 18 TL (2. Multi-Hop Knowledge Graph Context Expansion) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 459.8 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 19.5 Tm /F1 10.5 Tf 15 TL (After retrieving the primary vector candidates, the Agentic RAG engine inspects the graph_edges table) Tj T* (to pull 1st-hop topological neighbors linked to the top 3 cards.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 421.8 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 19.5 Tm /F1 10.5 Tf 15 TL (All candidate cards are re-ranked using a fused importance score: 0.65 * vector_similarity + 0.20 *) Tj T* (normalized_text_rank + 0.15 * pagerank_centrality, selecting the top 6 cards as context for the LLM.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 391.8 cm
+q
+BT 1 0 0 1 0 5 Tm 18 TL /F2 13 Tf 0 0 0 rg (3. Grounded Synthesis & Hallucination Self-Verification) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 340.8 cm
+q
+BT 1 0 0 1 0 34.5 Tm 15 TL /F1 10.5 Tf 0 0 0 rg (The Groq Llama 3.1 generator receives up to 2,200 characters per retrieved card along with document) Tj T* (type and source filename or URL, and is instructed to attach exact inline citations in the format [Card:) Tj T* (<) Tj (card_id) Tj (> - <) Tj (card_title) Tj (>) Tj (].) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 287.8 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 34.5 Tm /F1 10.5 Tf 15 TL (A second LLM judge pass \(temperature 0.0\) verifies every claim in the generated answer against the) Tj T* (exact same 2,200-character source context snippets, returning a grounded boolean, a 0.0-to-1.0) Tj T* (confidence score, and any unsupported claims.) Tj T* ET
+Q
+Q
+ 
+endstream
+endobj
+xref
+0 10
+0000000000 65535 f 
+0000000061 00000 n 
+0000000112 00000 n 
+0000000219 00000 n 
+0000000331 00000 n 
+0000000446 00000 n 
+0000000639 00000 n 
+0000000707 00000 n 
+0000001038 00000 n 
+0000001097 00000 n 
+trailer
+<<
+/ID 
+[<49302fbf34f53ac2945b91cec7872a1e><49302fbf34f53ac2945b91cec7872a1e>]
+% ReportLab generated PDF document -- digest (opensource)
+
+/Info 7 0 R
+/Root 6 0 R
+/Size 10
+>>
+startxref
+3756
+%%EOF

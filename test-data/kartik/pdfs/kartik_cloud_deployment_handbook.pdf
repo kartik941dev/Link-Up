@@ -1,0 +1,153 @@
+%PDF-1.4
+%“Œ‹ž ReportLab Generated PDF document (opensource)
+1 0 obj
+<<
+/F1 2 0 R /F2 3 0 R /F3 4 0 R
+>>
+endobj
+2 0 obj
+<<
+/BaseFont /Helvetica /Encoding /WinAnsiEncoding /Name /F1 /Subtype /Type1 /Type /Font
+>>
+endobj
+3 0 obj
+<<
+/BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding /Name /F2 /Subtype /Type1 /Type /Font
+>>
+endobj
+4 0 obj
+<<
+/BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding /Name /F3 /Subtype /Type1 /Type /Font
+>>
+endobj
+5 0 obj
+<<
+/Contents 9 0 R /MediaBox [ 0 0 612 792 ] /Parent 8 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+6 0 obj
+<<
+/PageMode /UseNone /Pages 8 0 R /Type /Catalog
+>>
+endobj
+7 0 obj
+<<
+/Author (Kartik Patel) /CreationDate (D:20261118171723+05'00') /Creator (\(unspecified\)) /Keywords () /ModDate (D:20261118171723+05'00') /Producer (ReportLab PDF Library - \(opensource\)) 
+  /Subject (\(unspecified\)) /Title (LinkUp Production Deployment and Security Handbook) /Trapped /False
+>>
+endobj
+8 0 obj
+<<
+/Count 1 /Kids [ 5 0 R ] /Type /Pages
+>>
+endobj
+9 0 obj
+<<
+/Length 2340
+>>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+1 0 0 1 67.2 702.8 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 4 Tm /F2 18 Tf 22 TL 1.263 0 Td (LinkUp Production Deployment and Security Handbook) Tj T* -1.263 0 Td ET
+Q
+Q
+q
+1 0 0 1 67.2 676.8 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F3 10 Tf 12 TL (Author: Kartik Patel) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 666.8 cm
+Q
+q
+1 0 0 1 67.2 636.8 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 5 Tm /F2 13 Tf 18 TL (1. Multi-Service Deployment Topology) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 585.8 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 34.5 Tm /F1 10.5 Tf 15 TL (LinkUp consists of three decoupled services: the React + Vite frontend on port 5173 \(deployed on) Tj T* (Vercel\), the Express TypeScript backend API on port 5000, and the Python FastAPI ML microservice) Tj T* (on port 8000.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 547.8 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 19.5 Tm /F1 10.5 Tf 15 TL (Both backend services connect to the same Neon Serverless PostgreSQL database so cards ingested) Tj T* (via Express are immediately searchable by FastAPI vector and RAG endpoints.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 517.8 cm
+q
+BT 1 0 0 1 0 5 Tm 18 TL /F2 13 Tf 0 0 0 rg (2. Authentication, Password Hashing & File Upload Safety) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 466.8 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 34.5 Tm /F1 10.5 Tf 15 TL (User authentication uses bcrypt with salt factor 10 for password hashing and HS256 JWT tokens with) Tj T* (24-hour expiration. Password reset tokens are 64-character cryptographically random hex strings valid) Tj T* (for 15 minutes and emailed via Brevo.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 413.8 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 34.5 Tm /F1 10.5 Tf 15 TL (PDF and DOCX uploads are handled in memory via Multer with a strict 25 MB file size limit and) Tj T* (MIME/extension filtering. Web link ingestion enforces SSRF protection blocking localhost, loopback,) Tj T* (and private RFC 1918 IP ranges.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 383.8 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 5 Tm /F2 13 Tf 18 TL (3. Timeout and Reliability Guidelines) Tj T* ET
+Q
+Q
+q
+1 0 0 1 67.2 332.8 cm
+q
+BT 1 0 0 1 0 34.5 Tm 15 TL /F1 10.5 Tf 0 0 0 rg (Because cold-starting the SentenceTransformers model and running two Groq LLM passes \(synthesis) Tj T* (+ verification\) can take 10 to 25 seconds, HTTP timeouts between Frontend -) Tj (> Backend -) Tj (> ML Service) Tj T* (must be set to at least 60 seconds for RAG queries.) Tj T* ET
+Q
+Q
+ 
+endstream
+endobj
+xref
+0 10
+0000000000 65535 f 
+0000000061 00000 n 
+0000000112 00000 n 
+0000000219 00000 n 
+0000000331 00000 n 
+0000000446 00000 n 
+0000000639 00000 n 
+0000000707 00000 n 
+0000001023 00000 n 
+0000001082 00000 n 
+trailer
+<<
+/ID 
+[<431b6f65d754014439b232a96324e290><431b6f65d754014439b232a96324e290>]
+% ReportLab generated PDF document -- digest (opensource)
+
+/Info 7 0 R
+/Root 6 0 R
+/Size 10
+>>
+startxref
+3473
+%%EOF
