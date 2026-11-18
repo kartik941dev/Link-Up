@@ -1,13 +1,22 @@
 import pdfParse from 'pdf-parse';
+import { AppError } from '../middleware/errorHandler.js';
+import { cleanCardTitle, extractFirstHeading } from '../utils/titleCleaner.js';
 
 export interface ExtractedPdfResult {
   text: string;
   pageCount: number;
-  title?: string;
+  title: string;
   author?: string;
   snippet: string;
   metadata: Record<string, any>;
 }
+
+const createPdfError = (message: string, code: string = 'PDF_PARSE_ERROR'): AppError => {
+  const err: AppError = new Error(message);
+  err.statusCode = 400;
+  err.code = code;
+  return err;
+};
 
 // Fallback helper to extract printable strings when PDF cross-reference table is damaged
 function extractFallbackStrings(buffer: Buffer): string {
@@ -30,76 +39,42 @@ function extractFallbackStrings(buffer: Buffer): string {
     return textMatches.join(' ').replace(/\\([()\\])/g, '$1').trim();
   }
 
-  // 2. Fallback: extract continuous printable text sequences
-  const rawStrings = content.match(/[\x20-\x7E\r\n\t]{4,}/g);
-  if (rawStrings) {
-    const filtered = rawStrings.filter(
-      (s) =>
-        !s.startsWith('/Type') &&
-        !s.startsWith('/Filter') &&
-        !s.startsWith('/Length') &&
-        !s.startsWith('/Font') &&
-        !s.includes('endobj') &&
-        !s.includes('endstream') &&
-        !s.includes('xref') &&
-        !s.includes('trailer') &&
-        !s.includes('startxref')
-    );
-    return filtered.join('\n').trim();
-  }
-
   return '';
+}
+
+function hasReadableContent(text: string): boolean {
+  // Accept any Unicode letters or digits (supports English, Hindi/Devanagari, etc.)
+  const meaningfulChars = (text || '').match(/[\p{L}\p{N}]/gu);
+  return !!meaningfulChars && meaningfulChars.length >= 3;
 }
 
 export const extractPdfContent = async (
   buffer: Buffer,
   originalFilename?: string
 ): Promise<ExtractedPdfResult> => {
-  const docTitle = originalFilename
-    ? originalFilename.replace(/\.pdf$/i, '')
-    : 'Untitled PDF Document';
-
   // 1. Guard against empty files
   if (!buffer || buffer.length === 0) {
-    throw new Error(
-      'The uploaded PDF file is empty (0 bytes). Please upload a valid PDF document with text.'
+    throw createPdfError(
+      'No readable text found: the uploaded PDF file is empty (0 bytes).',
+      'NO_READABLE_TEXT'
     );
   }
 
-  // 2. Check if the file is a text/markdown file saved with a .pdf extension
+  // 2. Check header
   const header = buffer.subarray(0, 5).toString('ascii');
   if (!header.startsWith('%PDF')) {
-    const possibleText = buffer.toString('utf-8').trim();
-    if (possibleText.length > 0) {
-      console.warn(
-        `[PDF_EXTRACTOR] File "${originalFilename}" does not contain standard %PDF header. Treating as raw text document.`
-      );
-      const cleanText = possibleText
-        .replace(/\r\n/g, '\n')
-        .replace(/[ \t]+/g, ' ')
-        .trim();
-      const snippet =
-        cleanText.slice(0, 250).replace(/\n/g, ' ') +
-        (cleanText.length > 250 ? '...' : '');
-
-      return {
-        text: cleanText,
-        pageCount: 1,
-        title: docTitle,
-        snippet,
-        metadata: {
-          numpages: 1,
-          format: 'text-as-pdf-fallback',
-          originalFilename,
-          charCount: cleanText.length,
-        },
-      };
-    }
+    throw createPdfError(
+      'Invalid PDF file: file does not have a valid PDF header.',
+      'INVALID_PDF'
+    );
   }
 
   // 3. Standard PDF parsing with pdf-parse
+  // Copy into a standalone unpooled Buffer so byteOffset is guaranteed to be 0
   try {
-    const data = await pdfParse(buffer);
+    const standaloneBuffer = Buffer.allocUnsafeSlow(buffer.length);
+    buffer.copy(standaloneBuffer);
+    const data = await pdfParse(standaloneBuffer);
     const rawText = data.text || '';
 
     // Clean whitespace and normalize line breaks
@@ -109,22 +84,31 @@ export const extractPdfContent = async (
       .replace(/\n\s*\n\s*\n/g, '\n\n')
       .trim();
 
-    // If pdf-parse succeeded but returned almost nothing, try fallback
-    if (cleanText.length < 10) {
+    if (!hasReadableContent(cleanText)) {
       const fallback = extractFallbackStrings(buffer);
-      if (fallback.length > cleanText.length) {
+      if (hasReadableContent(fallback)) {
         cleanText = fallback;
       }
+    }
+
+    if (!hasReadableContent(cleanText)) {
+      throw createPdfError(
+        'No readable text found in the uploaded PDF document.',
+        'NO_READABLE_TEXT'
+      );
     }
 
     const snippet =
       cleanText.slice(0, 250).replace(/\n/g, ' ') +
       (cleanText.length > 250 ? '...' : '');
 
-    const resolvedTitle =
-      data.info?.Title && data.info.Title.trim() !== ''
+    // Title priority: PDF metadata Title -> first heading in text -> cleaned filename
+    const metaTitle =
+      data.info?.Title && typeof data.info.Title === 'string' && data.info.Title.trim() !== ''
         ? data.info.Title.trim()
-        : docTitle;
+        : undefined;
+    const firstHeading = extractFirstHeading(cleanText);
+    const resolvedTitle = cleanCardTitle(metaTitle || firstHeading, originalFilename);
 
     return {
       text: cleanText,
@@ -143,20 +127,23 @@ export const extractPdfContent = async (
       },
     };
   } catch (err: any) {
+    if (err.statusCode) {
+      throw err;
+    }
     console.warn(`[PDF_EXTRACTOR] Standard pdfParse failed: ${err.message}. Attempting resilient fallback...`);
 
-    // 4. Resilient Fallback for damaged/non-standard xref tables
     const fallbackText = extractFallbackStrings(buffer);
-    if (fallbackText && fallbackText.length >= 10) {
-      console.info(`[PDF_EXTRACTOR] Successfully recovered ${fallbackText.length} characters using fallback extractor.`);
+    if (hasReadableContent(fallbackText)) {
       const snippet =
         fallbackText.slice(0, 250).replace(/\n/g, ' ') +
         (fallbackText.length > 250 ? '...' : '');
+      const firstHeading = extractFirstHeading(fallbackText);
+      const resolvedTitle = cleanCardTitle(firstHeading, originalFilename);
 
       return {
         text: fallbackText,
         pageCount: 1,
-        title: docTitle,
+        title: resolvedTitle,
         snippet,
         metadata: {
           numpages: 1,
@@ -169,6 +156,6 @@ export const extractPdfContent = async (
     }
 
     console.error('[PDF_EXTRACTOR] Error parsing PDF:', err);
-    throw new Error(`Failed to parse PDF document: ${err.message}`);
+    throw createPdfError('No readable text found or PDF file could not be parsed.', 'NO_READABLE_TEXT');
   }
 };
