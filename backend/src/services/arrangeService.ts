@@ -115,7 +115,9 @@ export class ArrangeService {
     // Group cards by cluster_label
     const clusterMap = new Map<string, ArrangedCard[]>();
     for (const card of cards) {
-      const label = card.cluster_label ? card.cluster_label.trim() : 'Uncategorized Notes';
+      const rawLabel = card.cluster_label ? card.cluster_label.trim() : '';
+      const label =
+        !rawLabel || rawLabel === 'Uncategorized Notes' ? 'Unclustered' : rawLabel;
       if (!clusterMap.has(label)) {
         clusterMap.set(label, []);
       }
@@ -135,10 +137,10 @@ export class ArrangeService {
       idx++;
     }
 
-    // Sort clusters so "Uncategorized Notes" is at the end if present
+    // Sort clusters so "Unclustered" is at the end if present
     clusters.sort((a, b) => {
-      if (a.name === 'Uncategorized Notes') return 1;
-      if (b.name === 'Uncategorized Notes') return -1;
+      if (a.name === 'Unclustered') return 1;
+      if (b.name === 'Unclustered') return -1;
       return b.card_count - a.card_count;
     });
 
