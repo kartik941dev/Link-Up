@@ -14,14 +14,14 @@ export const IngestUrlModal: React.FC<IngestUrlModalProps> = ({
 }) => {
   const [url, setUrl] = useState('');
   const [tagInput, setTagInput] = useState('');
-  const [tags, setTags] = useState<string[]>(['Web Link', 'Article']);
+  const [tags, setTags] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
   const handleAddTag = () => {
-    const trimmed = tagInput.trim();
+    const trimmed = tagInput.trim().toLowerCase();
     if (trimmed && !tags.includes(trimmed)) {
       setTags([...tags, trimmed]);
       setTagInput('');
@@ -34,16 +34,25 @@ export const IngestUrlModal: React.FC<IngestUrlModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!url.trim()) {
+    const trimmed = url.trim();
+    if (!trimmed) {
       setError('Please provide a URL to ingest.');
+      return;
+    }
+
+    // Strict scheme validation on client too
+    const schemeMatch = trimmed.match(/^([a-zA-Z][a-zA-Z0-9+.-]*):/);
+    if (schemeMatch && !['http', 'https'].includes(schemeMatch[1].toLowerCase())) {
+      setError(`Unsupported URL scheme "${schemeMatch[1]}:". Only http:// and https:// URLs are allowed.`);
       return;
     }
 
     try {
       setSubmitting(true);
       setError(null);
-      await onSubmit(url.trim(), tags);
+      await onSubmit(trimmed, tags);
       setUrl('');
+      setTags([]);
       onClose();
     } catch (err: any) {
       setError(err.message || 'Failed to ingest web link.');
@@ -91,7 +100,7 @@ export const IngestUrlModal: React.FC<IngestUrlModalProps> = ({
             >
               <Globe size={18} />
             </div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Ingest Web or Social Link</h2>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Ingest Web Link</h2>
           </div>
           <button
             onClick={onClose}
@@ -108,9 +117,9 @@ export const IngestUrlModal: React.FC<IngestUrlModalProps> = ({
             <label className="input-label">Website / Article URL</label>
             <div style={{ position: 'relative' }}>
               <input
-                type="url"
+                type="text"
                 className="input-field"
-                placeholder="https://example.com/article-or-post"
+                placeholder="https://developer.mozilla.org/en-US/docs/Web/JavaScript"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 required
@@ -129,17 +138,17 @@ export const IngestUrlModal: React.FC<IngestUrlModalProps> = ({
               />
             </div>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '0.25rem' }}>
-              LinkUp will automatically extract OpenGraph preview, site metadata, and readable content.
+              Extracts clean title, one-line description, readable text, and AI content tags.
             </span>
           </div>
 
           <div className="input-group" style={{ marginBottom: '1.75rem' }}>
-            <label className="input-label">Tags</label>
+            <label className="input-label">Additional Tags (Optional — AI auto-tags content keywords)</label>
             <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
               <input
                 type="text"
                 className="input-field"
-                placeholder="Add tag and press Enter..."
+                placeholder="Add optional content tag and press Enter..."
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyDown={(e) => {
