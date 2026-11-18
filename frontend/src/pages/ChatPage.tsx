@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Navbar } from '../components/common/Navbar.js';
 import { useChat } from '../hooks/useChat.js';
+import { useWorkspace } from '../context/WorkspaceContext.js';
 import { ChatMessageItem } from '../components/chat/ChatMessageItem.js';
 import { CardDetailModal } from '../components/modals/CardDetailModal.js';
 import { Card } from '../types/card.js';
@@ -13,13 +15,40 @@ import {
   ShieldCheck,
   Loader2,
   Compass,
+  UploadCloud,
 } from 'lucide-react';
 
 export const ChatPage: React.FC = () => {
   const { messages, loading, sendMessage, clearChat } = useChat();
+  const { dataVersion } = useWorkspace();
   const [inputText, setInputText] = useState('');
   const [selectedCardForDetail, setSelectedCardForDetail] = useState<Card | null>(null);
+  const [suggestedPrompts, setSuggestedPrompts] = useState<string[]>([]);
+  const [hasCards, setHasCards] = useState<boolean>(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Fetch dynamic suggested prompts on mount & silently refresh if cards changed
+  useEffect(() => {
+    let mounted = true;
+    const loadSuggestions = async () => {
+      try {
+        const res = await api.get<{
+          success: boolean;
+          data: { hasCards: boolean; cardCount: number; suggestions: string[] };
+        }>('/rag/suggestions');
+        if (mounted && res.data.success && res.data.data) {
+          setHasCards(res.data.data.hasCards);
+          setSuggestedPrompts(res.data.data.suggestions || []);
+        }
+      } catch (err) {
+        console.warn('Could not load dynamic prompt suggestions:', err);
+      }
+    };
+    loadSuggestions();
+    return () => {
+      mounted = false;
+    };
+  }, [dataVersion]);
 
   // Auto-scroll to bottom of conversation
   const scrollToBottom = () => {
@@ -54,13 +83,6 @@ export const ChatPage: React.FC = () => {
       console.warn('Failed to fetch cited card details:', err);
     }
   };
-
-  const samplePrompts = [
-    'What are the key concepts and topics in my knowledge cards?',
-    'Summarize my notes on deep learning and neural network architectures.',
-    'Explain how database indexing connects with vector search.',
-    'Which cards have the highest centrality in my knowledge graph?',
-  ];
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-main)' }}>
@@ -222,50 +244,77 @@ export const ChatPage: React.FC = () => {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Prompt Suggestions */}
+        {/* Dynamic Prompt Suggestions (or empty-library prompt) */}
         {messages.length <= 2 && (
           <div
             style={{
               display: 'flex',
               flexWrap: 'wrap',
+              alignItems: 'center',
               gap: '0.5rem',
               marginBottom: '0.85rem',
               flexShrink: 0,
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--text-dim)', fontSize: '0.76rem', marginRight: '0.25rem' }}>
-              <Compass size={13} /> Try asking:
-            </div>
-            {samplePrompts.map((prompt, idx) => (
-              <button
-                key={idx}
-                onClick={() => {
-                  setInputText(prompt);
-                }}
+            {!hasCards ? (
+              <Link
+                to="/"
                 style={{
-                  background: 'rgba(255, 255, 255, 0.04)',
-                  border: '1px solid var(--border-subtle)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  background: 'rgba(99, 102, 241, 0.14)',
+                  border: '1px solid rgba(99, 102, 241, 0.35)',
                   borderRadius: 'var(--radius-full)',
-                  padding: '0.3rem 0.75rem',
-                  fontSize: '0.76rem',
-                  color: 'var(--text-muted)',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--accent-primary)';
-                  e.currentTarget.style.color = '#ffffff';
-                  e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--border-subtle)';
-                  e.currentTarget.style.color = 'var(--text-muted)';
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+                  padding: '0.35rem 0.9rem',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  color: '#c7d2fe',
+                  textDecoration: 'none',
                 }}
               >
-                {prompt}
-              </button>
-            ))}
+                <UploadCloud size={14} />
+                <span>Upload a document to get started</span>
+              </Link>
+            ) : (
+              suggestedPrompts.length > 0 && (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--text-dim)', fontSize: '0.76rem', marginRight: '0.25rem' }}>
+                    <Compass size={13} /> Try asking:
+                  </div>
+                  {suggestedPrompts.map((prompt, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        setInputText(prompt);
+                      }}
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.04)',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: 'var(--radius-full)',
+                        padding: '0.3rem 0.75rem',
+                        fontSize: '0.76rem',
+                        color: 'var(--text-muted)',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--accent-primary)';
+                        e.currentTarget.style.color = '#ffffff';
+                        e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--border-subtle)';
+                        e.currentTarget.style.color = 'var(--text-muted)';
+                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+                      }}
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </>
+              )
+            )}
           </div>
         )}
 
