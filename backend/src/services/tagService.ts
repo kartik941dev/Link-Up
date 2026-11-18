@@ -1,8 +1,10 @@
 import { pool } from '../utils/db.js';
+import { NOISE_TAGS } from '../utils/titleCleaner.js';
 
 export class TagService {
-  // Get all tags for user with card usage counts
+  // Get all active content tags for user with card usage counts (excludes unused & file-type noise tags)
   static async getUserTags(userId: string) {
+    const noiseList = Array.from(NOISE_TAGS);
     const query = `
       SELECT 
         t.id, 
@@ -10,12 +12,15 @@ export class TagService {
         t.created_at,
         COUNT(ct.card_id)::int AS card_count
       FROM tags t
-      LEFT JOIN card_tags ct ON ct.tag_id = t.id
+      JOIN card_tags ct ON ct.tag_id = t.id
+      JOIN cards c ON c.id = ct.card_id AND c.user_id = $1
       WHERE t.user_id = $1
+        AND LOWER(t.name) <> ALL($2::text[])
       GROUP BY t.id
+      HAVING COUNT(ct.card_id) > 0
       ORDER BY card_count DESC, t.name ASC
     `;
-    const res = await pool.query(query, [userId]);
+    const res = await pool.query(query, [userId, noiseList]);
     return res.rows;
   }
 
