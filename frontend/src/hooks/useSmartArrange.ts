@@ -1,19 +1,22 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { SmartArrangeData, Card } from '../types/card.js';
 import { api, getErrorMessage } from '../utils/api.js';
+import { useWorkspace } from '../context/WorkspaceContext.js';
 
 export const useSmartArrange = () => {
+  const { activePath, dataVersion, notifyDataChanged } = useWorkspace();
   const [data, setData] = useState<SmartArrangeData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [regenerating, setRegenerating] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedClusterId, setSelectedClusterId] = useState<string | null>(null);
   const [searchFilter, setSearchFilter] = useState<string>('');
+  const syncedVersionRef = useRef<number>(dataVersion);
 
-  const fetchArrangement = useCallback(async (force: boolean = false) => {
+  const fetchArrangement = useCallback(async (force: boolean = false, silent: boolean = false) => {
     if (force) {
       setRegenerating(true);
-    } else {
+    } else if (!silent) {
       setLoading(true);
     }
     setError(null);
@@ -34,14 +37,23 @@ export const useSmartArrange = () => {
   }, []);
 
   useEffect(() => {
-    fetchArrangement(false);
+    fetchArrangement(false, false);
   }, [fetchArrangement]);
 
+  // Silently sync clusters when cards changed on another tab without showing skeleton loader
+  useEffect(() => {
+    if (activePath === '/arrange' && dataVersion !== syncedVersionRef.current) {
+      syncedVersionRef.current = dataVersion;
+      fetchArrangement(false, true);
+    }
+  }, [activePath, dataVersion, fetchArrangement]);
+
   const regenerate = () => {
-    fetchArrangement(true);
+    fetchArrangement(true, false);
   };
 
   const handleCardDeleted = (cardId: string) => {
+    notifyDataChanged();
     if (!data) return;
     const updatedClusters = data.clusters
       .map((cluster) => {
@@ -63,6 +75,7 @@ export const useSmartArrange = () => {
   };
 
   const handleCardUpdated = (updatedCard: Card) => {
+    notifyDataChanged();
     if (!data) return;
     const updatedClusters = data.clusters.map((cluster) => ({
       ...cluster,
