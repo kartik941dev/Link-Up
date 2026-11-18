@@ -1,3 +1,4 @@
+import zlib from 'zlib';
 import pdfParse from 'pdf-parse';
 import { AppError } from '../middleware/errorHandler.js';
 import { cleanCardTitle, extractFirstHeading } from '../utils/titleCleaner.js';
@@ -23,7 +24,6 @@ function extractFallbackStrings(buffer: Buffer): string {
   const content = buffer.toString('latin1');
   const textMatches: string[] = [];
 
-  // 1. Try extracting text within PDF text blocks BT ... ET
   const textBlockRegex = /BT[\s\S]*?ET/g;
   let blockMatch;
   while ((blockMatch = textBlockRegex.exec(content)) !== null) {
@@ -33,6 +33,42 @@ function extractFallbackStrings(buffer: Buffer): string {
     while ((match = tjRegex.exec(block)) !== null) {
       textMatches.push(match[1]);
     }
+  }
+
+  // Also check for Deflate compressed stream objects
+  try {
+    const streamRegex = /stream[\r\n]+([\s\S]*?)[\r\n]+endstream/g;
+    let streamMatch;
+    while ((streamMatch = streamRegex.exec(content)) !== null) {
+      try {
+        const rawBytes = Buffer.from(streamMatch[1], 'latin1');
+        let decompressed: string = '';
+        try {
+          decompressed = zlib.inflateSync(rawBytes).toString('latin1');
+        } catch {
+          try {
+            decompressed = zlib.inflateRawSync(rawBytes).toString('latin1');
+          } catch {
+            // Not raw zlib
+          }
+        }
+        if (decompressed) {
+          let decompMatch;
+          while ((decompMatch = textBlockRegex.exec(decompressed)) !== null) {
+            const block = decompMatch[0];
+            const tjRegex = /\(([^)]+)\)\s*(?:Tj|'|")/g;
+            let match;
+            while ((match = tjRegex.exec(block)) !== null) {
+              textMatches.push(match[1]);
+            }
+          }
+        }
+      } catch {
+        // Continue
+      }
+    }
+  } catch {
+    // Continue
   }
 
   if (textMatches.length > 0) {
@@ -132,6 +168,49 @@ export const extractPdfContent = async (
     }
     console.warn(`[PDF_EXTRACTOR] Standard pdfParse failed: ${err.message}. Attempting resilient fallback...`);
 
+    // 1. Resilient retry: normalize escaped parentheses in metadata strings (common in ReportLab PDFs)
+    try {
+      const sanitizedStr = buffer.toString('latin1').replace(/\\([()])/g, ' ');
+      const sanitizedBuf = Buffer.from(sanitizedStr, 'latin1');
+      const sanitizedData = await pdfParse(sanitizedBuf);
+      const rawText = sanitizedData.text || '';
+      const cleanText = rawText
+        .replace(/\r\n/g, '\n')
+        .replace(/[ \t]+/g, ' ')
+        .replace(/\n\s*\n\s*\n/g, '\n\n')
+        .trim();
+
+      if (hasReadableContent(cleanText)) {
+        const metaTitle =
+          sanitizedData.info?.Title && typeof sanitizedData.info.Title === 'string' && sanitizedData.info.Title.trim() !== ''
+            ? sanitizedData.info.Title.trim()
+            : undefined;
+        const firstHeading = extractFirstHeading(cleanText);
+        const resolvedTitle = cleanCardTitle(metaTitle || firstHeading, originalFilename);
+
+        return {
+          text: cleanText,
+          pageCount: sanitizedData.numpages || 1,
+          title: resolvedTitle,
+          author: sanitizedData.info?.Author || undefined,
+          snippet: cleanText.slice(0, 250).replace(/\n/g, ' ') + (cleanText.length > 250 ? '...' : ''),
+          metadata: {
+            numpages: sanitizedData.numpages,
+            version: sanitizedData.version,
+            producer: sanitizedData.info?.Producer,
+            creator: sanitizedData.info?.Creator,
+            creationDate: sanitizedData.info?.CreationDate,
+            originalFilename,
+            charCount: cleanText.length,
+            recoveredViaSanitization: true,
+          },
+        };
+      }
+    } catch {
+      // Continue to stream extraction fallback
+    }
+
+    // 2. Stream decompression and text extraction fallback
     const fallbackText = extractFallbackStrings(buffer);
     if (hasReadableContent(fallbackText)) {
       const snippet =
