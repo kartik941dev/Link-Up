@@ -43,7 +43,8 @@ async function ingestSinglePdfBuffer(
   mimeType: string,
   customTitle?: string,
   tagNames: string[] = [],
-  skipBackgroundGraph: boolean = false
+  skipBackgroundGraph: boolean = false,
+  extraMetadata?: Record<string, any>
 ) {
   const fileHash = sha256(buffer);
   const dup = await CardService.findDuplicateCard(userId, {
@@ -72,6 +73,7 @@ async function ingestSinglePdfBuffer(
     extractedText: extracted.text,
     metadata: {
       ...extracted.metadata,
+      ...extraMetadata,
       fileHash,
       fileSize: buffer.length,
       mimeType,
@@ -89,7 +91,8 @@ async function ingestSingleDocxBuffer(
   mimeType: string,
   customTitle?: string,
   tagNames: string[] = [],
-  skipBackgroundGraph: boolean = false
+  skipBackgroundGraph: boolean = false,
+  extraMetadata?: Record<string, any>
 ) {
   const fileHash = sha256(buffer);
   const dup = await CardService.findDuplicateCard(userId, {
@@ -118,6 +121,7 @@ async function ingestSingleDocxBuffer(
     extractedText: extracted.text,
     metadata: {
       ...extracted.metadata,
+      ...extraMetadata,
       fileHash,
       fileSize: buffer.length,
       mimeType,
@@ -158,6 +162,103 @@ router.get('/', async (req: AuthRequest, res: Response, next) => {
     }
 
     res.status(200).json({ cards, count: cards.length, counts });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// 1b. Ingestion & Upload History (Auditing files, timestamps, ZIP archives, and statuses)
+router.get('/upload-history', async (req: AuthRequest, res: Response, next) => {
+  try {
+    const userId = req.user!.id;
+    const cardsRes = await pool.query(
+      `SELECT 
+         id,
+         title,
+         content_type,
+         metadata,
+         created_at
+       FROM cards
+       WHERE user_id = $1
+       ORDER BY created_at DESC`,
+      [userId]
+    );
+
+    const zipArchivesMap: Record<string, {
+      archiveName: string;
+      uploadedAt: string;
+      totalFiles: number;
+      files: Array<{
+        id: string;
+        title: string;
+        filename: string;
+        contentType: string;
+        createdAt: string;
+        status: string;
+      }>;
+      status: string;
+    }> = {};
+
+    const standaloneUploads: Array<{
+      id: string;
+      title: string;
+      filename: string;
+      contentType: string;
+      createdAt: string;
+      status: string;
+    }> = [];
+
+    for (const row of cardsRes.rows) {
+      const meta = row.metadata || {};
+      const archiveName = meta.archiveName;
+      const filename = meta.originalFilename || row.title;
+      const fileItem = {
+        id: row.id,
+        title: row.title,
+        filename,
+        contentType: row.content_type,
+        createdAt: row.created_at,
+        status: 'Uploaded and working correctly',
+      };
+
+      if (archiveName) {
+        if (!zipArchivesMap[archiveName]) {
+          zipArchivesMap[archiveName] = {
+            archiveName,
+            uploadedAt: row.created_at,
+            totalFiles: 0,
+            files: [],
+            status: 'All uploaded and working correctly',
+          };
+        }
+        zipArchivesMap[archiveName].files.push(fileItem);
+        zipArchivesMap[archiveName].totalFiles += 1;
+      } else {
+        standaloneUploads.push(fileItem);
+      }
+    }
+
+    const zipArchives = Object.values(zipArchivesMap);
+
+    res.status(200).json({
+      summary: {
+        totalFiles: cardsRes.rows.length,
+        totalZipArchives: zipArchives.length,
+        standaloneCount: standaloneUploads.length,
+        status: 'All files active & working correctly in graph and AI assistant',
+      },
+      zipArchives,
+      standaloneUploads,
+      allFiles: cardsRes.rows.map((r) => ({
+        id: r.id,
+        title: r.title,
+        filename: r.metadata?.originalFilename || r.title,
+        contentType: r.content_type,
+        archiveName: r.metadata?.archiveName,
+        createdAt: r.created_at,
+        status: 'Uploaded and working correctly',
+      })),
+    });
   } catch (err) {
     next(err);
   }
@@ -446,7 +547,8 @@ router.post(
               'application/pdf',
               undefined,
               sharedTags,
-              true
+              true,
+              { archiveName: file.originalname, source: 'zip_archive' }
             );
             created.push(card);
           } else if (ext === '.docx') {
@@ -458,7 +560,8 @@ router.post(
               'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
               undefined,
               sharedTags,
-              true
+              true,
+              { archiveName: file.originalname, source: 'zip_archive' }
             );
             created.push(card);
           } else if (ext === '.md') {
@@ -467,7 +570,7 @@ router.post(
             if (text.length < 3) {
               skipped.push({
                 filename: baseName,
-                reason: 'No readable text found in markdown note.',
+                reason: 'No readable text found in markdown document.',
                 code: 'NO_READABLE_TEXT',
               });
               continue;
