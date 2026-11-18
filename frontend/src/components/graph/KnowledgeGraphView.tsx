@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { GraphNode, GraphLink, GraphStats } from '../../types/graph.js';
 import { ContentType } from '../../types/card.js';
+import { useWorkspace } from '../../context/WorkspaceContext.js';
 
 interface SimulatedNode extends GraphNode {
   x: number;
@@ -44,6 +45,7 @@ interface KnowledgeGraphViewProps {
   minSimilarity: number;
   onMinSimilarityChange: (val: number) => void;
   onExport: (format: 'png' | 'svg' | 'json' | 'csv') => void;
+  onOpenCard?: (cardId: string) => void;
 }
 
 const TYPE_COLORS: Record<ContentType, { main: string; glow: string; label: string }> = {
@@ -62,9 +64,12 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
   minSimilarity,
   onMinSimilarityChange,
   onExport,
+  onOpenCard,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const { activePath } = useWorkspace();
+  const isGraphVisible = activePath === '/graph';
 
   // Interaction State
   const [transform, setTransform] = useState({ x: 0, y: 0, k: 1 });
@@ -72,16 +77,60 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [draggedNode, setDraggedNode] = useState<SimulatedNode | null>(null);
   const [hoveredNode, setHoveredNode] = useState<SimulatedNode | null>(null);
+  const [hoverScreenPos, setHoverScreenPos] = useState<{ x: number; y: number } | null>(null);
   const [selectedNode, setSelectedNode] = useState<SimulatedNode | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [isRebuilding, setIsRebuilding] = useState(false);
 
-  // Simulation Nodes and Links
+  // Simulation Nodes, Links & Settle State
   const simNodesRef = useRef<SimulatedNode[]>([]);
   const animFrameRef = useRef<number | null>(null);
+  const hasAutoFittedRef = useRef<boolean>(false);
+  const settleTicksRef = useRef<number>(0);
 
-  // Build Simulated Nodes
+  // Compute bounding box of all nodes and fit cleanly inside viewport
+  const fitToView = useCallback(() => {
+    const simNodes = simNodesRef.current;
+    const container = containerRef.current;
+    if (!simNodes.length || !container) return;
+
+    const width = container.clientWidth || 900;
+    const height = container.clientHeight || 600;
+
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
+
+    for (const n of simNodes) {
+      const pad = n.radius + 36;
+      if (n.x - pad < minX) minX = n.x - pad;
+      if (n.x + pad > maxX) maxX = n.x + pad;
+      if (n.y - pad < minY) minY = n.y - pad;
+      if (n.y + pad > maxY) maxY = n.y + pad;
+    }
+
+    const graphW = Math.max(120, maxX - minX);
+    const graphH = Math.max(120, maxY - minY);
+    const topBarMargin = 90;
+    const bottomBarMargin = 70;
+    const availW = Math.max(200, width - 80);
+    const availH = Math.max(200, height - topBarMargin - bottomBarMargin);
+
+    const k = Math.max(0.35, Math.min(1.65, Math.min(availW / graphW, availH / graphH) * 0.92));
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+    const targetCenterY = topBarMargin + availH / 2;
+
+    setTransform({
+      x: width / 2 - centerX * k,
+      y: targetCenterY - centerY * k,
+      k,
+    });
+  }, []);
+
+  // Build Simulated Nodes with wide spiral distribution so initial spacing is generous
   useEffect(() => {
     const existingMap = new Map<string, { x: number; y: number; vx: number; vy: number }>();
     simNodesRef.current.forEach((n) => {
@@ -90,34 +139,38 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
 
     const width = containerRef.current?.clientWidth || 900;
     const height = containerRef.current?.clientHeight || 600;
+    const count = Math.max(1, nodes.length);
+    const baseRing = Math.max(180, Math.sqrt(count) * 95);
 
     simNodesRef.current = nodes.map((n, i) => {
       const existing = existingMap.get(n.id);
-      const angle = (i / Math.max(1, nodes.length)) * 2 * Math.PI;
-      const dist = 120 + Math.random() * 150;
+      const goldenAngle = i * 2.399963229728653; // Fibonacci spiral avoids initial overlaps
+      const dist = baseRing * Math.sqrt((i + 1) / count);
 
-      // Base radius by centrality (18px up to 34px)
+      // Base radius by centrality (20px up to 34px)
       const normCentrality = Math.max(0, Math.min(1, n.centrality || 0));
-      const radius = 18 + normCentrality * 16;
+      const radius = 20 + normCentrality * 14;
 
       return {
         ...n,
-        x: existing ? existing.x : width / 2 + Math.cos(angle) * dist,
-        y: existing ? existing.y : height / 2 + Math.sin(angle) * dist,
-        vx: existing ? existing.vx : (Math.random() - 0.5) * 2,
-        vy: existing ? existing.vy : (Math.random() - 0.5) * 2,
+        x: existing ? existing.x : width / 2 + Math.cos(goldenAngle) * dist,
+        y: existing ? existing.y : height / 2 + Math.sin(goldenAngle) * dist,
+        vx: existing ? existing.vx : 0,
+        vy: existing ? existing.vy : 0,
         radius,
       };
     });
+
+    hasAutoFittedRef.current = false;
+    settleTicksRef.current = 0;
   }, [nodes]);
 
-  // Active Simulated Links (filtered by minSimilarity)
+  // Active Simulated Links (server already filters by minSimilarity + k-NN rules)
   const simLinks: SimulatedLink[] = useMemo(() => {
     const nodeMap = new Map<string, SimulatedNode>();
     simNodesRef.current.forEach((n) => nodeMap.set(n.id, n));
 
     return links
-      .filter((l) => l.similarity_score >= minSimilarity)
       .map((l) => {
         const src = nodeMap.get(l.source);
         const tgt = nodeMap.get(l.target);
@@ -132,7 +185,7 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
         };
       })
       .filter(Boolean) as SimulatedLink[];
-  }, [links, minSimilarity, nodes]);
+  }, [links, nodes]);
 
   // Connected nodes map for hover/selection highlight
   const connectedNodeIds = useMemo(() => {
@@ -147,7 +200,7 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
     return set;
   }, [hoveredNode, selectedNode, simLinks]);
 
-  // Physics Simulation Step
+  // Physics Simulation Step (strong repulsion + longer links + hard collision separation)
   const runPhysicsStep = useCallback(() => {
     const simNodes = simNodesRef.current;
     if (!simNodes.length) return;
@@ -157,23 +210,31 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
     const centerX = width / 2;
     const centerY = height / 2;
 
-    const damping = 0.82;
-    const repulsionStrength = 2200;
-    const springLength = 140;
-    const springStrength = 0.045;
-    const centerPull = 0.012;
+    const damping = 0.80;
+    const repulsionStrength = 7500;
+    const springLength = 200;
+    const springStrength = 0.032;
+    const centerPull = 0.0055;
+    const collisionPadding = 28;
 
-    // 1. Repulsion between all pairs
+    // 1. Charge repulsion + collision force between all pairs
     for (let i = 0; i < simNodes.length; i++) {
       for (let j = i + 1; j < simNodes.length; j++) {
         const a = simNodes[i];
         const b = simNodes[j];
-        const dx = b.x - a.x;
-        const dy = b.y - a.y;
-        const distSq = dx * dx + dy * dy + 100;
+        let dx = b.x - a.x;
+        let dy = b.y - a.y;
+        let distSq = dx * dx + dy * dy;
+
+        if (distSq < 0.01) {
+          dx = (Math.random() - 0.5) * 2;
+          dy = (Math.random() - 0.5) * 2;
+          distSq = dx * dx + dy * dy;
+        }
         const dist = Math.sqrt(distSq);
 
-        const force = repulsionStrength / distSq;
+        // Strong charge repulsion
+        const force = repulsionStrength / (distSq + 180);
         const fx = (dx / dist) * force;
         const fy = (dy / dist) * force;
 
@@ -185,6 +246,26 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
           b.vx += fx;
           b.vy += fy;
         }
+
+        // Collision force using radiusA + radiusB + padding
+        const minDist = a.radius + b.radius + collisionPadding;
+        if (dist < minDist) {
+          const overlap = (minDist - dist) * 0.55;
+          const ox = (dx / dist) * overlap;
+          const oy = (dy / dist) * overlap;
+          if (a !== draggedNode) {
+            a.x -= ox;
+            a.y -= oy;
+            a.vx -= ox * 0.15;
+            a.vy -= oy * 0.15;
+          }
+          if (b !== draggedNode) {
+            b.x += ox;
+            b.y += oy;
+            b.vx += ox * 0.15;
+            b.vy += oy * 0.15;
+          }
+        }
       }
     }
 
@@ -195,10 +276,10 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
       const dx = b.x - a.x;
       const dy = b.y - a.y;
       const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-      const delta = dist - springLength;
+      const targetLen = springLength + (1 - l.similarity_score) * 60;
+      const delta = dist - targetLen;
 
-      // Higher similarity = tighter spring
-      const strength = springStrength * (0.8 + l.similarity_score * 0.4);
+      const strength = springStrength * (0.7 + l.similarity_score * 0.5);
       const fx = (dx / dist) * delta * strength;
       const fy = (dy / dist) * delta * strength;
 
@@ -213,6 +294,7 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
     });
 
     // 3. Center gravity pull & Integration
+    let totalSpeed = 0;
     simNodes.forEach((n) => {
       if (n === draggedNode) return;
 
@@ -222,10 +304,60 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
       n.vx *= damping;
       n.vy *= damping;
 
+      // Clamp max velocity per frame for stability
+      const speed = Math.sqrt(n.vx * n.vx + n.vy * n.vy);
+      if (speed > 18) {
+        n.vx = (n.vx / speed) * 18;
+        n.vy = (n.vy / speed) * 18;
+      }
+
       n.x += n.vx;
       n.y += n.vy;
+      totalSpeed += speed;
     });
-  }, [simLinks, draggedNode]);
+
+    // 4. Final strict non-overlap pass so no two circles ever intersect
+    for (let i = 0; i < simNodes.length; i++) {
+      for (let j = i + 1; j < simNodes.length; j++) {
+        const a = simNodes[i];
+        const b = simNodes[j];
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const dist = Math.sqrt(dx * dx + dy * dy) || 0.01;
+        const minDist = a.radius + b.radius + 16;
+        if (dist < minDist) {
+          const push = (minDist - dist) / 2;
+          const px = (dx / dist) * push;
+          const py = (dy / dist) * push;
+          if (a !== draggedNode) {
+            a.x -= px;
+            a.y -= py;
+          }
+          if (b !== draggedNode) {
+            b.x += px;
+            b.y += py;
+          }
+        }
+      }
+    }
+
+    settleTicksRef.current += 1;
+    // Auto fit-to-view once layout has settled
+    if (!hasAutoFittedRef.current && (settleTicksRef.current >= 90 || (settleTicksRef.current >= 35 && totalSpeed / simNodes.length < 0.25))) {
+      hasAutoFittedRef.current = true;
+      fitToView();
+    }
+  }, [simLinks, draggedNode, fitToView]);
+
+  // Synchronous warm-up ticks when nodes/links change so graph opens already settled & fitted
+  useEffect(() => {
+    if (!simNodesRef.current.length) return;
+    for (let t = 0; t < 140; t++) {
+      runPhysicsStep();
+    }
+    hasAutoFittedRef.current = true;
+    fitToView();
+  }, [nodes, simLinks, fitToView]);
 
   // Main Canvas Render Loop
   const renderCanvas = useCallback(() => {
@@ -337,38 +469,45 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
       ctx.textBaseline = 'middle';
       ctx.fillText(colors.label, n.x, n.y);
 
-      // Card Title Text Below Node
-      const title = n.title.length > 22 ? n.title.substring(0, 20) + '...' : n.title;
-      ctx.font = '500 11px "Plus Jakarta Sans", sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'top';
+      // Show truncated label ONLY on hover, selection, active search match, or when zoomed in
+      const showLabel =
+        isHovered ||
+        isSelected ||
+        (searchQuery.trim() !== '' && matchesSearch) ||
+        transform.k >= 1.15;
 
-      // Title background capsule
-      const textWidth = ctx.measureText(title).width;
-      const textY = n.y + n.radius + 6;
-      ctx.fillStyle = isSelected
-        ? 'rgba(14, 165, 233, 0.35)'
-        : 'rgba(15, 23, 42, 0.75)';
-      ctx.strokeStyle = isSelected
-        ? 'rgba(56, 189, 248, 0.5)'
-        : 'rgba(255, 255, 255, 0.08)';
-      ctx.lineWidth = 1;
+      if (showLabel) {
+        const title = n.title.length > 22 ? n.title.substring(0, 20) + '...' : n.title;
+        ctx.font = '500 11px "Plus Jakarta Sans", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
 
-      ctx.beginPath();
-      const padX = 7;
-      const padY = 3;
-      ctx.roundRect(
-        n.x - textWidth / 2 - padX,
-        textY - padY,
-        textWidth + padX * 2,
-        18,
-        5
-      );
-      ctx.fill();
-      ctx.stroke();
+        const textWidth = ctx.measureText(title).width;
+        const textY = n.y + n.radius + 6;
+        ctx.fillStyle = isSelected
+          ? 'rgba(14, 165, 233, 0.35)'
+          : 'rgba(15, 23, 42, 0.85)';
+        ctx.strokeStyle = isSelected
+          ? 'rgba(56, 189, 248, 0.5)'
+          : 'rgba(255, 255, 255, 0.12)';
+        ctx.lineWidth = 1;
 
-      ctx.fillStyle = isSelected ? '#ffffff' : '#e2e8f0';
-      ctx.fillText(title, n.x, textY + 1);
+        ctx.beginPath();
+        const padX = 7;
+        const padY = 3;
+        ctx.roundRect(
+          n.x - textWidth / 2 - padX,
+          textY - padY,
+          textWidth + padX * 2,
+          18,
+          5
+        );
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = isSelected ? '#ffffff' : '#e2e8f0';
+        ctx.fillText(title, n.x, textY + 1);
+      }
 
       ctx.restore();
     });
@@ -376,8 +515,9 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
     ctx.restore();
   }, [simLinks, transform, connectedNodeIds, hoveredNode, selectedNode, searchQuery]);
 
-  // Animation Loop
+  // Animation Loop (pauses cleanly when tab is hidden, resumes immediately when visible)
   useEffect(() => {
+    if (!isGraphVisible) return;
     let active = true;
     const loop = () => {
       if (!active) return;
@@ -391,29 +531,47 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
       active = false;
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     };
-  }, [runPhysicsStep, renderCanvas]);
+  }, [isGraphVisible, runPhysicsStep, renderCanvas]);
 
-  // Handle Resize
+  // Handle Resize & Tab Visibility Restore (never overwrites canvas with 0x0 while hidden)
   useEffect(() => {
-    const handleResize = () => {
+    const syncCanvasSize = () => {
       const container = containerRef.current;
       const canvas = canvasRef.current;
       if (!container || !canvas) return;
+      if (container.clientWidth === 0 || container.clientHeight === 0) return;
 
       const dpr = window.devicePixelRatio || 1;
-      canvas.width = container.clientWidth * dpr;
-      canvas.height = container.clientHeight * dpr;
-      canvas.style.width = `${container.clientWidth}px`;
-      canvas.style.height = `${container.clientHeight}px`;
-
-      const ctx = canvas.getContext('2d');
-      if (ctx) ctx.scale(dpr, dpr);
+      const targetW = Math.round(container.clientWidth * dpr);
+      const targetH = Math.round(container.clientHeight * dpr);
+      if (canvas.width !== targetW || canvas.height !== targetH) {
+        canvas.width = targetW;
+        canvas.height = targetH;
+        canvas.style.width = `${container.clientWidth}px`;
+        canvas.style.height = `${container.clientHeight}px`;
+        const ctx = canvas.getContext('2d');
+        if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+      renderCanvas();
     };
 
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+    if (isGraphVisible) {
+      syncCanvasSize();
+    }
+
+    const observer =
+      typeof ResizeObserver !== 'undefined'
+        ? new ResizeObserver(() => syncCanvasSize())
+        : null;
+    if (observer && containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+    window.addEventListener('resize', syncCanvasSize);
+    return () => {
+      window.removeEventListener('resize', syncCanvasSize);
+      observer?.disconnect();
+    };
+  }, [isGraphVisible, renderCanvas]);
 
   // Screen Coordinates to Canvas World Coordinates
   const getCanvasCoords = useCallback(
@@ -470,12 +628,21 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
       return;
     }
 
-    // Hover detection
+    // Hover detection & tooltip position
     const hovered = simNodesRef.current.find((n) => {
       const dist = Math.sqrt((n.x - x) ** 2 + (n.y - y) ** 2);
       return dist <= n.radius + 6;
     });
     setHoveredNode(hovered || null);
+    if (hovered && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setHoverScreenPos({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      });
+    } else {
+      setHoverScreenPos(null);
+    }
   };
 
   const handleMouseUp = () => {
@@ -506,7 +673,7 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
   // Zoom Button Controls
   const handleZoom = (direction: 'in' | 'out' | 'reset') => {
     if (direction === 'reset') {
-      setTransform({ x: 0, y: 0, k: 1 });
+      fitToView();
       return;
     }
     const factor = direction === 'in' ? 1.25 : 0.8;
@@ -589,7 +756,7 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
         <g transform="translate(${n.x}, ${n.y})">
           <circle r="${n.radius}" fill="#111827" stroke="${color}" stroke-width="2" />
           <text text-anchor="middle" dy="4" fill="#ffffff" font-size="11" font-weight="bold">${TYPE_COLORS[n.content_type]?.label || 'NOTE'}</text>
-          <text text-anchor="middle" dy="${n.radius + 15}" fill="#e2e8f0" font-size="10">${n.title.replace(/[<&]/g, '')}</text>
+          <text text-anchor="middle" dy="${n.radius + 15}" fill="#e2e8f0" font-size="10">${n.title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')}</text>
         </g>
       `;
       })
@@ -672,6 +839,32 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
         }}
       />
 
+      {/* Hover Full-Title Tooltip */}
+      {hoveredNode && hoverScreenPos && !draggedNode && (
+        <div
+          style={{
+            position: 'absolute',
+            left: Math.min(hoverScreenPos.x + 16, (containerRef.current?.clientWidth || 900) - 290),
+            top: Math.max(76, hoverScreenPos.y - 16),
+            maxWidth: '275px',
+            padding: '0.55rem 0.8rem',
+            borderRadius: 'var(--radius-md)',
+            background: 'rgba(10, 15, 29, 0.96)',
+            border: '1px solid rgba(99, 102, 241, 0.45)',
+            boxShadow: '0 10px 28px rgba(0, 0, 0, 0.6)',
+            pointerEvents: 'none',
+            zIndex: 25,
+          }}
+        >
+          <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#ffffff', lineHeight: 1.35 }}>
+            {hoveredNode.title}
+          </div>
+          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+            {hoveredNode.content_type.toUpperCase()} • Centrality {Math.round((hoveredNode.centrality || 0) * 100)}% • Click to open
+          </div>
+        </div>
+      )}
+
       {/* Top Floating Control Bar */}
       <div
         className="glass-panel"
@@ -741,8 +934,8 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
             </span>
             <input
               type="range"
-              min="0.50"
-              max="0.95"
+              min="0.20"
+              max="0.90"
               step="0.05"
               value={minSimilarity}
               onChange={(e) => onMinSimilarityChange(parseFloat(e.target.value))}
@@ -1004,6 +1197,17 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
           <h2 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '0.75rem', lineHeight: 1.35 }}>
             {selectedNode.title}
           </h2>
+
+          {onOpenCard && (
+            <button
+              onClick={() => onOpenCard(selectedNode.id)}
+              className="btn btn-primary"
+              style={{ width: '100%', marginBottom: '1rem', padding: '0.55rem 0.9rem', fontSize: '0.82rem' }}
+            >
+              <Maximize2 size={14} />
+              <span>Open Full Card</span>
+            </button>
+          )}
 
           {/* Metrics */}
           <div
