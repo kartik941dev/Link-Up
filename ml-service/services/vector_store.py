@@ -19,7 +19,11 @@ class VectorStore:
             self._pool = pool.SimpleConnectionPool(
                 minconn=1,
                 maxconn=10,
-                dsn=self.db_url
+                dsn=self.db_url,
+                keepalives=1,
+                keepalives_idle=30,
+                keepalives_interval=10,
+                keepalives_count=5,
             )
             logger.info("PostgreSQL connection pool initialized for VectorStore.")
         except Exception as e:
@@ -31,11 +35,50 @@ class VectorStore:
             self._init_pool()
         if self._pool is None:
             raise ConnectionError("Unable to establish PostgreSQL connection pool.")
+
+        # Validate pooled connection (serverless Postgres like Neon can drop idle connections)
+        for attempt in range(2):
+            conn = self._pool.getconn()
+            try:
+                if conn.closed != 0:
+                    self._pool.putconn(conn, close=True)
+                    continue
+                with conn.cursor() as cur:
+                    cur.execute("SELECT 1;")
+                return conn
+            except (psycopg2.OperationalError, psycopg2.InterfaceError) as e:
+                logger.warning(f"Stale PostgreSQL connection detected (attempt {attempt + 1}): {e}. Reconnecting...")
+                try:
+                    self._pool.putconn(conn, close=True)
+                except Exception:
+                    pass
+                if attempt == 1:
+                    # Recreate pool on second failure
+                    try:
+                        self._pool.closeall()
+                    except Exception:
+                        pass
+                    self._pool = None
+                    self._init_pool()
+                    if self._pool is None:
+                        raise ConnectionError("Unable to re-establish PostgreSQL connection pool.")
+                    return self._pool.getconn()
         return self._pool.getconn()
 
     def release_connection(self, conn):
         if self._pool and conn:
-            self._pool.putconn(conn)
+            try:
+                is_closed = conn.closed != 0
+                if not is_closed:
+                    # Ensure no aborted transaction leaks back into the pool
+                    if conn.info.transaction_status == psycopg2.extensions.TRANSACTION_STATUS_INERROR:
+                        conn.rollback()
+                self._pool.putconn(conn, close=is_closed)
+            except Exception:
+                try:
+                    self._pool.putconn(conn, close=True)
+                except Exception:
+                    pass
 
     def search_similar_cards(
         self,

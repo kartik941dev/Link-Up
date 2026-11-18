@@ -33,7 +33,7 @@ export class MLClient {
   constructor() {
     this.client = axios.create({
       baseURL: config.mlServiceUrl,
-      timeout: 10000,
+      timeout: 60000,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -43,7 +43,7 @@ export class MLClient {
   // Check ML Service health
   async checkHealth(): Promise<MLHealthResponse | null> {
     try {
-      const res = await this.client.get<MLHealthResponse>('/health');
+      const res = await this.client.get<MLHealthResponse>('/health', { timeout: 5000 });
       return res.data;
     } catch (err: any) {
       console.warn(`[MLClient] ML service health check failed at ${config.mlServiceUrl}: ${err.message}`);
@@ -129,10 +129,27 @@ export class MLClient {
     }
   }
 
+  // Extract 2-4 lowercase semantic content keywords via ML service
+  async extractKeywords(title: string, text: string, topK: number = 4): Promise<string[] | null> {
+    if (!title && !text) return null;
+
+    try {
+      const res = await this.client.post<{ keywords: string[] }>('/keywords', {
+        title: (title || '').slice(0, 500),
+        text: (text || '').slice(0, 8000),
+        top_k: topK,
+      });
+      return res.data.keywords || [];
+    } catch (err: any) {
+      console.warn(`[MLClient] Keyword extraction endpoint failed: ${err.message}`);
+      return null;
+    }
+  }
+
   // Trigger knowledge graph construction via ML microservice
   async buildGraph(
     userId: string,
-    minSimilarity: number = 0.60
+    minSimilarity: number = 0.45
   ): Promise<{
     status: string;
     node_count: number;

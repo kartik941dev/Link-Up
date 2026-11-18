@@ -18,7 +18,7 @@ class HallucinationVerifier:
         if api_key and not api_key.startswith("gsk_your_groq_api_key"):
             try:
                 from groq import Groq
-                self._groq_client = Groq(api_key=api_key)
+                self._groq_client = Groq(api_key=api_key, max_retries=1)
                 self._model_name = resolve_groq_model(self._groq_client)
                 logger.info(f"Verifier initialized Groq client using model: {self._model_name}")
             except Exception as e:
@@ -54,10 +54,21 @@ class HallucinationVerifier:
         # 1. Try Groq Llama 3.1 verification prompt
         if self._groq_client:
             try:
+                # Prefer cited cards to keep verification prompt compact and aligned with the generator
+                cited_ids = set(re.findall(r'\[Card:\s*([0-9a-fA-F-]+)', answer))
+                selected_cards = [c for c in context_cards if str(c["id"]) in cited_ids] or context_cards[:3]
+
                 context_snippets = []
-                for c in context_cards[:6]:
-                    card_text = c.get("extracted_text") or c.get("snippet") or c.get("title") or ""
-                    context_snippets.append(f"[Card: {c['id']} - {c['title']}]: {card_text[:350]}")
+                for c in selected_cards[:4]:
+                    card_text = (
+                        c.get("_rag_excerpt")
+                        or c.get("extracted_text")
+                        or c.get("raw_content")
+                        or c.get("snippet")
+                        or c.get("title")
+                        or ""
+                    )
+                    context_snippets.append(f"[Card: {c['id']} - {c['title']}]: {card_text[:1200]}")
                 
                 context_block = "\n\n".join(context_snippets)
 
@@ -76,8 +87,9 @@ RESPONSE TO VERIFY:
 INSTRUCTIONS:
 1. Break down the response into key factual claims.
 2. Check if each claim is directly mentioned or logically entailed by the SOURCE CONTEXT.
-3. If information is not in the context, flag it as an unsupported claim.
-4. Output STRICT JSON only. Format:
+3. If the response correctly states that the knowledge cards do not contain enough information, mark grounded=true with high confidence.
+4. If information is fabricated and not in the context, flag it as an unsupported claim.
+5. Output STRICT JSON only. Format:
 {{
   "grounded": true or false,
   "confidence": 0.0 to 1.0,
@@ -99,7 +111,7 @@ INSTRUCTIONS:
                         }
                     ],
                     temperature=0.0,
-                    max_tokens=250,
+                    max_tokens=400,
                 )
 
                 content = res.choices[0].message.content.strip()
@@ -135,7 +147,7 @@ INSTRUCTIONS:
         for c in context_cards:
             all_context += " " + (c.get("title") or "")
             all_context += " " + (c.get("snippet") or "")
-            all_context += " " + (c.get("extracted_text") or "")[:500]
+            all_context += " " + (c.get("extracted_text") or "")[:2200]
 
         context_tokens = set(re.findall(r'[a-zA-Z]{3,}', all_context.lower()))
 

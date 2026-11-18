@@ -22,26 +22,34 @@ STOP_WORDS = {
     "pdf", "docx", "document", "file", "notes", "summary", "overview", "introduction", "guide"
 }
 
+_CACHED_GROQ_MODEL: Optional[str] = None
+
 def resolve_groq_model(client) -> str:
     """Dynamically resolves the best available chat completion model for this Groq account."""
+    global _CACHED_GROQ_MODEL
+    if _CACHED_GROQ_MODEL:
+        return _CACHED_GROQ_MODEL
+
     PREFERRED = [
         "llama-3.1-8b-instant",
+        "llama-3.3-70b-versatile",
         "qwen/qwen3.8-27b",
         "openai/gpt-oss-20b",
         "openai/gpt-oss-120b",
         "allam-2-7b",
         "llama3-8b-8192",
-        "llama-3.3-70b-versatile"
     ]
     try:
-        available = {m.id for m in client.models.list().data}
+        available = {m.id for m in client.models.list(timeout=8.0).data}
         for pref in PREFERRED:
             if pref in available:
+                _CACHED_GROQ_MODEL = pref
                 return pref
         chat_models = [m for m in available if "whisper" not in m and "guard" not in m]
-        return chat_models[0] if chat_models else list(available)[0]
+        _CACHED_GROQ_MODEL = chat_models[0] if chat_models else list(available)[0]
+        return _CACHED_GROQ_MODEL
     except Exception:
-        return "qwen/qwen3.8-27b"
+        return "llama-3.1-8b-instant"
 
 class LLMClient:
     def __init__(self):
@@ -107,7 +115,7 @@ class LLMClient:
                             "content": prompt
                         }
                     ],
-                    temperature=0.3,
+                    temperature=0.0,
                     max_tokens=25,
                 )
                 
