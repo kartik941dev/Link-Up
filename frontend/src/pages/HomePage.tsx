@@ -8,6 +8,7 @@ import { CardCanvas } from '../components/cards/CardCanvas.js';
 import { CreateNoteModal } from '../components/modals/CreateNoteModal.js';
 import { UploadPdfModal } from '../components/modals/UploadPdfModal.js';
 import { UploadDocxModal } from '../components/modals/UploadDocxModal.js';
+import { UploadZipModal } from '../components/modals/UploadZipModal.js';
 import { IngestUrlModal } from '../components/modals/IngestUrlModal.js';
 import { CardDetailModal } from '../components/modals/CardDetailModal.js';
 import { EditCardModal } from '../components/modals/EditCardModal.js';
@@ -25,13 +26,17 @@ import {
 export const HomePage: React.FC = () => {
   const {
     cards,
+    counts,
     loading: cardsLoading,
     error: cardsError,
     filters,
     setFilters,
     createNote,
     ingestPdf,
+    ingestPdfBatch,
     ingestDocx,
+    ingestDocxBatch,
+    ingestZip,
     ingestUrl,
     updateCard,
     deleteCard,
@@ -56,6 +61,7 @@ export const HomePage: React.FC = () => {
   const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
   const [isDocxModalOpen, setIsDocxModalOpen] = useState(false);
+  const [isZipModalOpen, setIsZipModalOpen] = useState(false);
   const [isUrlModalOpen, setIsUrlModalOpen] = useState(false);
   const [selectedCardForDetail, setSelectedCardForDetail] = useState<Card | null>(null);
   const [selectedCardForEdit, setSelectedCardForEdit] = useState<Card | null>(null);
@@ -82,10 +88,28 @@ export const HomePage: React.FC = () => {
     return card;
   };
 
+  const handleIngestPdfBatch = async (files: File[], pdfTags: string[] = []) => {
+    const res = await ingestPdfBatch(files, pdfTags);
+    showSuccess(res.message);
+    return res;
+  };
+
   const handleIngestDocx = async (file: File, title?: string, docxTags: string[] = []) => {
     const card = await ingestDocx(file, title, docxTags);
     showSuccess(`Word document "${card.title}" ingested!`);
     return card;
+  };
+
+  const handleIngestDocxBatch = async (files: File[], docxTags: string[] = []) => {
+    const res = await ingestDocxBatch(files, docxTags);
+    showSuccess(res.message);
+    return res;
+  };
+
+  const handleIngestZip = async (file: File, zipTags: string[] = []) => {
+    const res = await ingestZip(file, zipTags);
+    showSuccess(res.message);
+    return res;
   };
 
   const handleIngestUrl = async (url: string, urlTags: string[] = []) => {
@@ -179,7 +203,7 @@ export const HomePage: React.FC = () => {
                 <Layers size={18} />
               </div>
               <div>
-                <div style={{ fontSize: '1.3rem', fontWeight: 800, lineHeight: 1 }}>{cards.length}</div>
+                <div style={{ fontSize: '1.3rem', fontWeight: 800, lineHeight: 1 }}>{counts.all}</div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '0.15rem' }}>Total Cards</div>
               </div>
             </div>
@@ -256,6 +280,7 @@ export const HomePage: React.FC = () => {
             {/* Tag & Search Filter Bar */}
             <TagFilterBar
               tags={tags}
+              counts={counts}
               selectedTag={filters.tag}
               onSelectTag={(tag) => setFilters((prev) => ({ ...prev, tag }))}
               selectedType={filters.contentType || 'all'}
@@ -267,6 +292,7 @@ export const HomePage: React.FC = () => {
               onOpenCreateNote={() => setIsNoteModalOpen(true)}
               onOpenUploadPdf={() => setIsPdfModalOpen(true)}
               onOpenUploadDocx={() => setIsDocxModalOpen(true)}
+              onOpenUploadZip={() => setIsZipModalOpen(true)}
               onOpenIngestUrl={() => setIsUrlModalOpen(true)}
             />
 
@@ -280,6 +306,7 @@ export const HomePage: React.FC = () => {
               onOpenCreateNote={() => setIsNoteModalOpen(true)}
               onOpenUploadPdf={() => setIsPdfModalOpen(true)}
               onOpenUploadDocx={() => setIsDocxModalOpen(true)}
+              onOpenUploadZip={() => setIsZipModalOpen(true)}
               onOpenIngestUrl={() => setIsUrlModalOpen(true)}
             />
           </>
@@ -297,12 +324,20 @@ export const HomePage: React.FC = () => {
         isOpen={isPdfModalOpen}
         onClose={() => setIsPdfModalOpen(false)}
         onSubmit={handleIngestPdf}
+        onSubmitBatch={handleIngestPdfBatch}
       />
 
       <UploadDocxModal
         isOpen={isDocxModalOpen}
         onClose={() => setIsDocxModalOpen(false)}
         onSubmit={handleIngestDocx}
+        onSubmitBatch={handleIngestDocxBatch}
+      />
+
+      <UploadZipModal
+        isOpen={isZipModalOpen}
+        onClose={() => setIsZipModalOpen(false)}
+        onSubmit={handleIngestZip}
       />
 
       <IngestUrlModal

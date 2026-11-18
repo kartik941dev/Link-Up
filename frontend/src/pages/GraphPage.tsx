@@ -1,39 +1,79 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Navbar } from '../components/common/Navbar.js';
 import { KnowledgeGraphView } from '../components/graph/KnowledgeGraphView.js';
+import { CardDetailModal } from '../components/modals/CardDetailModal.js';
+import { useWorkspace } from '../context/WorkspaceContext.js';
 import { api, getErrorMessage } from '../utils/api.js';
 import { GraphData } from '../types/graph.js';
+import { Card } from '../types/card.js';
 import { Network, AlertCircle, RefreshCw, UploadCloud, Layers } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export const GraphPage: React.FC = () => {
+  const { activePath, dataVersion, notifyDataChanged } = useWorkspace();
   const [graphData, setGraphData] = useState<GraphData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [minSimilarity, setMinSimilarity] = useState<number>(0.60);
+  const [minSimilarity, setMinSimilarity] = useState<number>(0.45);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
+  const [selectedFullCard, setSelectedFullCard] = useState<Card | null>(null);
+  const syncedVersionRef = useRef<number>(dataVersion);
 
-  // Fetch Graph
-  const fetchGraph = useCallback(async (threshold: number = minSimilarity) => {
+  const handleOpenCardDetail = async (cardId: string) => {
     try {
-      setLoading(true);
-      setError(null);
-      const res = await api.get<{ success: boolean; data: GraphData }>(
-        `/graph?minSimilarity=${threshold}`
-      );
-      if (res.data.success) {
-        setGraphData(res.data.data);
+      const res = await api.get<{ card: Card }>(`/cards/${cardId}`);
+      if (res.data.card) {
+        setSelectedFullCard(res.data.card);
       }
     } catch (err) {
       setError(getErrorMessage(err));
-    } finally {
-      setLoading(false);
     }
-  }, [minSimilarity]);
+  };
+
+  // Fetch Graph (silent mode keeps existing graph visible without flashing loader)
+  const fetchGraph = useCallback(
+    async (threshold: number = minSimilarity, silent: boolean = false) => {
+      try {
+        if (!silent) setLoading(true);
+        setError(null);
+        const res = await api.get<{ success: boolean; data: GraphData }>(
+          `/graph?minSimilarity=${threshold}`
+        );
+        if (res.data.success) {
+          setGraphData(res.data.data);
+        }
+      } catch (err) {
+        setError(getErrorMessage(err));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [minSimilarity]
+  );
+
+  const handleDeleteCard = async (cardId: string) => {
+    try {
+      await api.delete(`/cards/${cardId}`);
+      setSelectedFullCard(null);
+      notifyDataChanged();
+      await fetchGraph(minSimilarity, true);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  };
 
   useEffect(() => {
-    fetchGraph(minSimilarity);
-  }, [fetchGraph, minSimilarity]);
+    fetchGraph(minSimilarity, graphData !== null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [minSimilarity]);
+
+  // Silently sync graph when cards changed on another tab (e.g. uploaded/deleted on Canvas)
+  useEffect(() => {
+    if (activePath === '/graph' && dataVersion !== syncedVersionRef.current) {
+      syncedVersionRef.current = dataVersion;
+      fetchGraph(minSimilarity, true);
+    }
+  }, [activePath, dataVersion, minSimilarity, fetchGraph]);
 
   // Handle Rebuild Request
   const handleRebuild = async () => {
@@ -43,7 +83,7 @@ export const GraphPage: React.FC = () => {
       const res = await api.post('/graph/rebuild', { minSimilarity });
       if (res.data.success) {
         setFeedbackMsg('Knowledge graph updated successfully!');
-        await fetchGraph(minSimilarity);
+        await fetchGraph(minSimilarity, true);
       }
     } catch (err) {
       setError(getErrorMessage(err));
@@ -170,9 +210,18 @@ export const GraphPage: React.FC = () => {
             minSimilarity={minSimilarity}
             onMinSimilarityChange={setMinSimilarity}
             onExport={handleExport}
+            onOpenCard={handleOpenCardDetail}
           />
         )}
       </main>
+
+      <CardDetailModal
+        card={selectedFullCard}
+        isOpen={selectedFullCard !== null}
+        onClose={() => setSelectedFullCard(null)}
+        onEdit={() => {}}
+        onDelete={handleDeleteCard}
+      />
     </div>
   );
 };
