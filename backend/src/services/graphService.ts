@@ -58,7 +58,20 @@ export class GraphService {
       console.warn(`[GraphService] ML microservice rebuild failed: ${err.message}. Falling back to PostgreSQL native.`);
     }
 
-    // 2. Database Fallback via pgvector
+    // 2. Ensure all cards have embeddings before computing graph
+    try {
+      const unencoded = await pool.query(
+        'SELECT id, title, raw_content, extracted_text FROM cards WHERE user_id = $1 AND embedding IS NULL',
+        [userId]
+      );
+      for (const c of unencoded.rows) {
+        await mlClient.syncCardEmbedding(c.id, c.title, c.extracted_text || c.raw_content || '');
+      }
+    } catch (e: any) {
+      console.warn(`[GraphService] Embedding sync warning: ${e.message}`);
+    }
+
+    // 3. Database Fallback via pgvector
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
@@ -79,7 +92,7 @@ export class GraphService {
         return { nodeCount: totalCards, edgeCount: 0, source: 'database_fallback' };
       }
 
-      // Compute pairwise cosine similarities in PostgreSQL
+      // Compute pairwise cosine similarities in PostgreSQL (Task 4: threshold edges)
       const insertEdgesQuery = `
         INSERT INTO graph_edges (
           user_id, source_card_id, target_card_id, weight, similarity_score, edge_type, reason
@@ -91,8 +104,8 @@ export class GraphService {
           ROUND((1 - (c1.embedding <=> c2.embedding))::numeric, 4) AS weight,
           ROUND((1 - (c1.embedding <=> c2.embedding))::numeric, 4) AS similarity_score,
           CASE 
-            WHEN (1 - (c1.embedding <=> c2.embedding)) >= 0.85 THEN 'direct_reference'
-            WHEN (1 - (c1.embedding <=> c2.embedding)) >= 0.72 THEN 'topic_cluster'
+            WHEN (1 - (c1.embedding <=> c2.embedding)) >= 0.80 THEN 'direct_reference'
+            WHEN (1 - (c1.embedding <=> c2.embedding)) >= 0.60 THEN 'topic_cluster'
             ELSE 'semantic_similarity'
           END AS edge_type,
           'Semantic similarity (' || ROUND(((1 - (c1.embedding <=> c2.embedding)) * 100)::numeric, 0) || '%)' AS reason
@@ -101,31 +114,66 @@ export class GraphService {
         WHERE c1.user_id = $1 
           AND c1.embedding IS NOT NULL 
           AND c2.embedding IS NOT NULL
-          AND (1 - (c1.embedding <=> c2.embedding)) >= LEAST($2::float, 0.25);
+          AND (1 - (c1.embedding <=> c2.embedding)) >= LEAST($2::float, 0.35);
       `;
       const edgeInsertRes = await client.query(insertEdgesQuery, [userId, minSimilarity]);
-      const edgeCount = edgeInsertRes.rowCount || 0;
+      let edgeCount = edgeInsertRes.rowCount || 0;
 
-      // Degree centrality fallback calculation
+      // Task 4: Connect each node to its top 2 to 3 nearest neighbours in addition to threshold edges
+      const allCardsRes = await client.query(
+        'SELECT id FROM cards WHERE user_id = $1 AND embedding IS NOT NULL',
+        [userId]
+      );
+      for (const cardRow of allCardsRes.rows) {
+        const nnRes = await client.query(
+          `SELECT c2.id, ROUND((1 - (c1.embedding <=> c2.embedding))::numeric, 4) AS sim
+           FROM cards c1
+           CROSS JOIN cards c2
+           WHERE c1.id = $1 AND c2.user_id = $2 AND c2.id != $1
+             AND c1.embedding IS NOT NULL AND c2.embedding IS NOT NULL
+           ORDER BY c1.embedding <=> c2.embedding ASC
+           LIMIT 2`,
+          [cardRow.id, userId]
+        );
+
+        for (const nn of nnRes.rows) {
+          if (Number(nn.sim) >= 0.20) {
+            const [src, tgt] = cardRow.id < nn.id ? [cardRow.id, nn.id] : [nn.id, cardRow.id];
+            const insRes = await client.query(
+              `INSERT INTO graph_edges (user_id, source_card_id, target_card_id, weight, similarity_score, edge_type, reason)
+               SELECT $1, $2, $3, $4, $4, 'nearest_neighbor', 'Top semantic neighbor'
+               WHERE NOT EXISTS (
+                 SELECT 1 FROM graph_edges WHERE user_id = $1 AND source_card_id = $2 AND target_card_id = $3
+               )`,
+              [userId, src, tgt, nn.sim]
+            );
+            if (insRes.rowCount && insRes.rowCount > 0) {
+              edgeCount++;
+            }
+          }
+        }
+      }
+
+      // Degree centrality calculation (Postgres 16 CTE compatible)
       const centralityQuery = `
-        WITH card_degrees AS (
-          SELECT card_id, COUNT(*) AS degree
-          FROM (
-            SELECT source_card_id AS card_id FROM graph_edges WHERE user_id = $1
-            UNION ALL
-            SELECT target_card_id AS card_id FROM graph_edges WHERE user_id = $1
-          ) all_edges
-          GROUP BY card_id
-        ),
-        max_deg AS (
-          SELECT COALESCE(MAX(degree), 1) as max_val FROM card_degrees
-        )
-        UPDATE cards c
-        SET centrality = ROUND(COALESCE(cd.degree::numeric / md.max_val::numeric, 0.0), 4),
+        UPDATE cards
+        SET centrality = ROUND(COALESCE(sub.degree::numeric / NULLIF(sub.max_deg, 0)::numeric, 0.0), 4),
             updated_at = CURRENT_TIMESTAMP
-        FROM max_deg md
-        LEFT JOIN card_degrees cd ON cd.card_id = c.id
-        WHERE c.user_id = $1;
+        FROM (
+          SELECT c.id, COALESCE(cd.degree, 0) as degree, MAX(COALESCE(cd.degree, 1)) OVER () as max_deg
+          FROM cards c
+          LEFT JOIN (
+            SELECT card_id, COUNT(*) AS degree
+            FROM (
+              SELECT source_card_id AS card_id FROM graph_edges WHERE user_id = $1
+              UNION ALL
+              SELECT target_card_id AS card_id FROM graph_edges WHERE user_id = $1
+            ) e
+            GROUP BY card_id
+          ) cd ON cd.card_id = c.id
+          WHERE c.user_id = $1
+        ) sub
+        WHERE cards.id = sub.id;
       `;
       await client.query(centralityQuery, [userId]);
 
@@ -190,7 +238,18 @@ export class GraphService {
       ORDER BY ge.similarity_score DESC;
     `;
     const linksRes = await pool.query(linksQuery, [userId, minSimilarity]);
-    const links: GraphLink[] = linksRes.rows;
+    let links: GraphLink[] = linksRes.rows;
+
+    // Auto-heal: If user has 2+ cards but 0 connections recorded, automatically rebuild the graph
+    if (links.length === 0 && nodes.length >= 2) {
+      try {
+        await GraphService.rebuildUserGraph(userId, minSimilarity);
+        const refetchRes = await pool.query(linksQuery, [userId, minSimilarity]);
+        links = refetchRes.rows;
+      } catch (e: any) {
+        console.warn(`[GraphService] Auto-rebuild on empty graph warning: ${e.message}`);
+      }
+    }
 
     // Calculate summary statistics
     const totalNodes = nodes.length;

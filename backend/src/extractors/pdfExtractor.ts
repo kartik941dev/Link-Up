@@ -19,12 +19,52 @@ const createPdfError = (message: string, code: string = 'PDF_PARSE_ERROR'): AppE
   return err;
 };
 
+// Decode ASCII85 / Base85 data stream (standard in ReportLab and Adobe PostScript streams)
+function decodeAscii85(str: string): Buffer {
+  const s = str.replace(/<~|~>/g, '').replace(/\s+/g, '');
+  const out: number[] = [];
+  let tuple = 0;
+  let count = 0;
+
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (c === 'z' && count === 0) {
+      out.push(0, 0, 0, 0);
+      continue;
+    }
+    const val = c.charCodeAt(0) - 33;
+    if (val < 0 || val > 84) continue;
+    tuple = tuple * 85 + val;
+    count++;
+    if (count === 5) {
+      out.push((tuple >> 24) & 0xff);
+      out.push((tuple >> 16) & 0xff);
+      out.push((tuple >> 8) & 0xff);
+      out.push(tuple & 0xff);
+      tuple = 0;
+      count = 0;
+    }
+  }
+
+  if (count > 1) {
+    for (let j = count; j < 5; j++) {
+      tuple = tuple * 85 + 84;
+    }
+    for (let k = 0; k < count - 1; k++) {
+      out.push((tuple >> (24 - k * 8)) & 0xff);
+    }
+  }
+
+  return Buffer.from(out);
+}
+
 // Fallback helper to extract printable strings when PDF cross-reference table is damaged
 function extractFallbackStrings(buffer: Buffer): string {
   const content = buffer.toString('latin1');
   const textMatches: string[] = [];
-
   const textBlockRegex = /BT[\s\S]*?ET/g;
+
+  // 1. Direct BT ... ET blocks in uncompressed content
   let blockMatch;
   while ((blockMatch = textBlockRegex.exec(content)) !== null) {
     const block = blockMatch[0];
@@ -35,23 +75,43 @@ function extractFallbackStrings(buffer: Buffer): string {
     }
   }
 
-  // Also check for Deflate compressed stream objects
+  // 2. Compressed stream objects (FlateDecode or ASCII85Decode + FlateDecode)
   try {
-    const streamRegex = /stream[\r\n]+([\s\S]*?)[\r\n]+endstream/g;
+    const streamRegex = /stream\r?\n([\s\S]*?)\r?\n?endstream/g;
     let streamMatch;
     while ((streamMatch = streamRegex.exec(content)) !== null) {
       try {
-        const rawBytes = Buffer.from(streamMatch[1], 'latin1');
+        const streamData = streamMatch[1];
         let decompressed: string = '';
+
+        // Try raw inflateSync
         try {
+          const rawBytes = Buffer.from(streamData, 'latin1');
           decompressed = zlib.inflateSync(rawBytes).toString('latin1');
         } catch {
           try {
+            const rawBytes = Buffer.from(streamData, 'latin1');
             decompressed = zlib.inflateRawSync(rawBytes).toString('latin1');
           } catch {
-            // Not raw zlib
+            // Try ASCII85 decode followed by inflate
+            try {
+              const ascii85 = decodeAscii85(streamData);
+              if (ascii85.length > 0) {
+                decompressed = zlib.inflateSync(ascii85).toString('latin1');
+              }
+            } catch {
+              try {
+                const ascii85 = decodeAscii85(streamData);
+                if (ascii85.length > 0) {
+                  decompressed = zlib.inflateRawSync(ascii85).toString('latin1');
+                }
+              } catch {
+                // Not a compressed text stream
+              }
+            }
           }
         }
+
         if (decompressed) {
           let decompMatch;
           while ((decompMatch = textBlockRegex.exec(decompressed)) !== null) {
@@ -79,9 +139,22 @@ function extractFallbackStrings(buffer: Buffer): string {
 }
 
 function hasReadableContent(text: string): boolean {
-  // Accept any Unicode letters or digits (supports English, Hindi/Devanagari, etc.)
-  const meaningfulChars = (text || '').match(/[\p{L}\p{N}]/gu);
-  return !!meaningfulChars && meaningfulChars.length >= 3;
+  if (!text || typeof text !== 'string') return false;
+  const trimmed = text.trim();
+  if (trimmed.length < 8) return false;
+
+  // Filter out scanned image / binary font stream noise (e.g. dlhEn,b`_P.9!Sq$@...)
+  const words = trimmed.split(/\s+/).filter(Boolean);
+  if (words.length <= 2 && trimmed.length > 50) {
+    const symbolCount = (trimmed.match(/[!@#$%^&*()_+=[\]{};':"\\|<>\/?`~-]/g) || []).length;
+    if (symbolCount / trimmed.length > 0.15) {
+      return false; // Binary stream / font encoding artifact, not readable natural text
+    }
+  }
+
+  // Must have real Unicode letters or digits (supports English, Hindi, numbers)
+  const meaningfulChars = trimmed.match(/[\p{L}\p{N}]/gu);
+  return !!meaningfulChars && meaningfulChars.length >= 8;
 }
 
 export const extractPdfContent = async (

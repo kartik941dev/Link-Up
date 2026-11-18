@@ -75,10 +75,10 @@ export class CardService {
     }
   }
 
-  // Check for duplicate file (by SHA-256 hash or filename) or duplicate URL
+  // Check for duplicate file (by SHA-256 hash or filename) or duplicate URL / title
   static async findDuplicateCard(
     userId: string,
-    opts: { fileHash?: string; originalFilename?: string; url?: string; contentType?: string }
+    opts: { fileHash?: string; originalFilename?: string; url?: string; contentType?: string; title?: string }
   ): Promise<{ id: string; title: string } | null> {
     if (opts.url) {
       const normalizedUrl = opts.url.trim().replace(/\/+$/, '').toLowerCase();
@@ -112,6 +112,19 @@ export class CardService {
         [userId, opts.contentType, opts.originalFilename]
       );
       if (res.rows.length > 0) return res.rows[0];
+    }
+
+    if (opts.title) {
+      const cleanT = opts.title.trim().toLowerCase();
+      if (cleanT.length >= 3) {
+        const res = await pool.query(
+          `SELECT id, title FROM cards
+           WHERE user_id = $1 AND LOWER(TRIM(title)) = $2
+           LIMIT 1`,
+          [userId, cleanT]
+        );
+        if (res.rows.length > 0) return res.rows[0];
+      }
     }
 
     return null;

@@ -47,7 +47,7 @@ async function ingestSinglePdfBuffer(
   extraMetadata?: Record<string, any>
 ) {
   const fileHash = sha256(buffer);
-  const dup = await CardService.findDuplicateCard(userId, {
+  let dup = await CardService.findDuplicateCard(userId, {
     fileHash,
     originalFilename,
     contentType: 'pdf',
@@ -64,6 +64,17 @@ async function ingestSinglePdfBuffer(
     customTitle && customTitle.trim() !== ''
       ? cleanCardTitle(customTitle, originalFilename)
       : extracted.title;
+
+  dup = await CardService.findDuplicateCard(userId, {
+    title: resolvedTitle,
+    contentType: 'pdf',
+  });
+  if (dup) {
+    const err: any = new Error(`Duplicate document: "${originalFilename}" already exists as "${dup.title}".`);
+    err.statusCode = 409;
+    err.code = 'DUPLICATE_CARD';
+    throw err;
+  }
 
   return await CardService.createCard({
     userId,
@@ -95,7 +106,7 @@ async function ingestSingleDocxBuffer(
   extraMetadata?: Record<string, any>
 ) {
   const fileHash = sha256(buffer);
-  const dup = await CardService.findDuplicateCard(userId, {
+  let dup = await CardService.findDuplicateCard(userId, {
     fileHash,
     originalFilename,
     contentType: 'docx',
@@ -112,6 +123,17 @@ async function ingestSingleDocxBuffer(
     customTitle && customTitle.trim() !== ''
       ? cleanCardTitle(customTitle, originalFilename)
       : extracted.title;
+
+  dup = await CardService.findDuplicateCard(userId, {
+    title: resolvedTitle,
+    contentType: 'docx',
+  });
+  if (dup) {
+    const err: any = new Error(`Duplicate document: "${originalFilename}" already exists as "${dup.title}".`);
+    err.statusCode = 409;
+    err.code = 'DUPLICATE_CARD';
+    throw err;
+  }
 
   return await CardService.createCard({
     userId,
